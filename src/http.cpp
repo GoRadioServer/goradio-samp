@@ -74,6 +74,27 @@ bool WouldBlock() {
 #endif
 }
 
+// setsockopt's value argument is `const void *` on POSIX but
+// `const char *` on Winsock, and its length is socklen_t against int.
+// Every int-valued option goes through this one wrapper so no call site
+// has to remember the cast -- missing it on three of them is what broke
+// the first Windows build.
+int SetSockOptInt(socket_t fd, int level, int option, int value) {
+	return ::setsockopt(fd, level, option, reinterpret_cast<const char *>(&value),
+	                    static_cast<int>(sizeof(value)));
+}
+
+// gai_strerror is a macro on Windows that resolves to the wide-char form
+// when UNICODE is defined; pin the ANSI one so this doesn't depend on how
+// the consuming build happens to be configured.
+std::string GaiErrorText(int rc) {
+#if defined(_WIN32)
+	return gai_strerrorA(rc);
+#else
+	return gai_strerror(rc);
+#endif
+}
+
 void SetRecvTimeout(socket_t fd, int timeout_ms) {
 #if defined(_WIN32)
 	DWORD tv = static_cast<DWORD>(timeout_ms);
@@ -117,16 +138,23 @@ void SetBlocking(socket_t fd, bool blocking) {
 // forever. The event stream can legitimately sit idle for minutes between
 // events, so a read timeout can't do this job on its own.
 void EnableKeepalive(socket_t fd) {
-	int on = 1;
-	::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&on), sizeof(on));
+	SetSockOptInt(fd, SOL_SOCKET, SO_KEEPALIVE, 1);
+
+	// Guarded one at a time rather than as a group: which of these three a
+	// platform spells varies, and Windows gained TCP_KEEPCNT in a later
+	// SDK than TCP_KEEPIDLE, so a single guard around all three would
+	// break on an older one.
 #if defined(TCP_KEEPIDLE)
-	int idle = 20, intvl = 10, cnt = 3;
-	::setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));
-	::setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
-	::setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof(cnt));
+	SetSockOptInt(fd, IPPROTO_TCP, TCP_KEEPIDLE, 20);
 #endif
-	int nodelay = 1;
-	::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&nodelay), sizeof(nodelay));
+#if defined(TCP_KEEPINTVL)
+	SetSockOptInt(fd, IPPROTO_TCP, TCP_KEEPINTVL, 10);
+#endif
+#if defined(TCP_KEEPCNT)
+	SetSockOptInt(fd, IPPROTO_TCP, TCP_KEEPCNT, 3);
+#endif
+
+	SetSockOptInt(fd, IPPROTO_TCP, TCP_NODELAY, 1);
 }
 
 // Opens a TCP connection with a bounded connect time. A blocking connect()
@@ -144,7 +172,7 @@ socket_t DialTcp(const std::string &host, int port, int timeout_ms, std::string 
 	struct addrinfo *res = 0;
 	int rc = ::getaddrinfo(host.c_str(), port_str, &hints, &res);
 	if (rc != 0 || res == 0) {
-		*err = "resolve " + host + " failed: " + gai_strerror(rc);
+		*err = "resolve " + host + " failed: " + GaiErrorText(rc);
 		return GORADIO_INVALID_SOCKET;
 	}
 
@@ -167,7 +195,12 @@ socket_t DialTcp(const std::string &host, int port, int timeout_ms, std::string 
 			struct timeval tv;
 			tv.tv_sec = timeout_ms / 1000;
 			tv.tv_usec = (timeout_ms % 1000) * 1000;
-			int sel = ::select(static_cast<int>(fd) + 1, 0, &wfds, 0, &tv);
+#if defined(_WIN32)
+			const int nfds = 0; // ignored by Winsock
+#else
+			const int nfds = static_cast<int>(fd) + 1;
+#endif
+			int sel = ::select(nfds, 0, &wfds, 0, &tv);
 			if (sel > 0) {
 				int soerr = 0;
 				socklen_t len = sizeof(soerr);
@@ -190,8 +223,7 @@ socket_t DialTcp(const std::string &host, int port, int timeout_ms, std::string 
 #if defined(SO_NOSIGPIPE)
 			// macOS/BSD have no MSG_NOSIGNAL; this is the per-socket
 			// equivalent, and it also covers writes OpenSSL makes itself.
-			int nosigpipe = 1;
-			::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+			SetSockOptInt(fd, SOL_SOCKET, SO_NOSIGPIPE, 1);
 #endif
 			SetSendTimeout(fd, timeout_ms);
 			break;

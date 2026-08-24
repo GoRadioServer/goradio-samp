@@ -36,7 +36,7 @@ ifeq ($(TLS),1)
 	LDLIBS   += -lssl -lcrypto
 endif
 
-.PHONY: all clean test dirs docker
+.PHONY: all clean test dirs docker check-windows check-names
 
 all: dirs $(TARGET)
 
@@ -59,6 +59,17 @@ docker:
 	docker build --target export --output type=local,dest=$(BINDIR) \
 		--build-arg VERSION=$(VERSION) --build-arg BITS=$(BITS) --build-arg TLS=$(TLS) .
 	@echo "built $(BINDIR)/goradio.so in a container ($(BITS)-bit, TLS=$(TLS), version $(VERSION))"
+
+# Compiles every source against real Windows headers via MinGW, at both
+# widths. Worth running before a release: MSVC is the only thing CI can
+# check Windows with, and waiting on it is a slow way to find a typo.
+check-windows:
+	docker build --target windows-check -t goradio-windows-check .
+
+# Cross-checks the PAWN API surface against the natives table, and against
+# PAWN's 31-character symbol limit.
+check-names:
+	@sh scripts/check-names.sh
 
 clean:
 	rm -rf $(BUILDDIR) $(BINDIR) dist

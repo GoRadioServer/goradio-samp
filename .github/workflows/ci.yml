@@ -98,34 +98,52 @@ jobs:
           Write-Host "all six entry points exported"
 
   pawn:
-    name: PAWN include compiles
+    name: PAWN API surface
     runs-on: ubuntu-latest
+    env:
+      PAWNC_VERSION: 3.10.10
     steps:
       - uses: actions/checkout@v4
 
-      # The natives in goradio.inc are cross-checked against natives.cpp by
-      # hand, but only a compiler catches a malformed declaration or a
-      # default argument the Pawn parser won't accept.
-      - name: Fetch the Pawn compiler and the SA-MP standard library
+      # Catches a native declared but not registered, and any name over
+      # PAWN's 31-character symbol limit -- both of which compile cleanly
+      # and then fail at runtime.
+      - name: Check names
+        run: make check-names
+
+      - name: Fetch the Pawn compiler
         run: |
-          mkdir -p /tmp/pawn
-          curl -fsSL -o /tmp/pawn/compiler.zip \
-            https://github.com/pawn-lang/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.zip
-          unzip -q /tmp/pawn/compiler.zip -d /tmp/pawn
-          git clone --depth 1 https://github.com/pawn-lang/samp-stdlib /tmp/pawn/stdlib
+          mkdir -p /tmp/pawn && cd /tmp/pawn
+          curl -fsSL -o pawnc.tar.gz \
+            "https://github.com/pawn-lang/compiler/releases/download/v${PAWNC_VERSION}/pawnc-${PAWNC_VERSION}-linux.tar.gz"
+          tar xzf pawnc.tar.gz
+
+      # Two separate repositories: pawn-stdlib has core.inc/float.inc, and
+      # samp-stdlib has a_samp.inc. The compiler tarball ships neither.
+      - name: Fetch the standard libraries
+        run: |
+          git clone -q --depth 1 https://github.com/pawn-lang/pawn-stdlib /tmp/pawn/pawn-stdlib
+          git clone -q --depth 1 https://github.com/pawn-lang/samp-stdlib /tmp/pawn/samp-stdlib
 
       - name: Compile the example filterscript
         run: |
-          pawncc=$(find /tmp/pawn -name pawncc -type f | head -1)
-          chmod +x "$pawncc"
+          export LD_LIBRARY_PATH="/tmp/pawn/pawnc-${PAWNC_VERSION}-linux/lib"
           # -Z+ is compatibility mode, which is what Pawno uses; the SA-MP
           # standard library does not compile cleanly without it.
-          "$pawncc" examples/goradio_example.pwn \
-            -i"$(dirname "$(find /tmp/pawn/stdlib -name a_samp.inc | head -1)")" \
-            -iinclude \
-            -o/tmp/goradio_example.amx \
-            -Z+ -d3
+          "/tmp/pawn/pawnc-${PAWNC_VERSION}-linux/bin/pawncc" \
+            examples/goradio_example.pwn \
+            -i/tmp/pawn/pawn-stdlib -i/tmp/pawn/samp-stdlib -iinclude \
+            -o/tmp/goradio_example.amx -Z+ -d3 2>&1 | tee /tmp/pawncc.log
           test -f /tmp/goradio_example.amx
+
+          # warning 200 is symbol truncation: the compiler quietly shortens
+          # the name, the plugin registers the full one, and the native
+          # never binds. make check-names should have caught it first --
+          # this is the backstop.
+          if grep -q "warning 200" /tmp/pawncc.log; then
+            echo "::error::pawncc truncated a symbol -- see warning 200 above"
+            exit 1
+          fi
 
   docs:
     name: Docs build

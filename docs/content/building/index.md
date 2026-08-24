@@ -12,6 +12,8 @@ make                # bin/goradio.so, 32-bit -- what samp03svr loads
 make BITS=64        # 64-bit, for open.mp
 make TLS=1          # link OpenSSL, so https:// audio server URLs work
 make test           # host-side tests, no SA-MP server needed
+make check-names    # PAWN API surface vs the natives table, and the 31-char limit
+make check-windows  # compile against Windows headers via MinGW, no Windows needed
 make clean
 ```
 
@@ -67,6 +69,15 @@ plugin actually ships:
 ```sh
 docker build --target test --build-arg BITS=32 .
 ```
+
+And type-check the Windows build without a Windows machine:
+
+```sh
+make check-windows
+```
+
+See [Running the Tests](testing.md#checking-the-windows-build-without-windows)
+for what that does and does not prove.
 
 ## Windows
 

@@ -39,7 +39,22 @@ I/O. Lock order is state → jobs → dispatch, and nothing takes
 `state_mutex_` while holding either of the others. If you add a code path,
 check it against that.
 
-After any change here, re-run the tests under both sanitizers — they are
+## Before pushing anything that touches src/
+
+`make check-windows` compiles every source against real Windows headers
+via MinGW, at both widths. CI's MSVC job is the authority, but it is a
+slow way to discover a missing cast -- Winsock's `setsockopt` takes
+`const char *` where POSIX takes `const void *`, and that exact
+difference broke a release build.
+
+Two things make that check meaningful rather than decorative, and both
+are easy to undo by accident: it uses the **`-posix`** compiler variants
+(MinGW's default win32 threading model has no `<mutex>`), and it
+**force-defines `TCP_KEEPIDLE`** and friends, which MinGW does not
+declare -- without that, the guarded block is preprocessed away and the
+check silently passes over the very code that was broken.
+
+After any change to threading, re-run the tests under both sanitizers — they are
 how the SIGPIPE bug in `HttpConnection::Post`'s keep-alive retry was
 found, and that one would have killed the game server:
 
@@ -60,19 +75,23 @@ inconsistent in a way scripters hit before you do:
    table. Validate the argument count with `CheckArgs` — PAWN passes
    `params[0]` as a *byte* count, not an argument count.
 2. **Declare it** in `include/goradio.inc`, with the same name and
-   argument order. There is a check for this:
-   ```sh
-   diff <(grep -oE '^native (GoRadio_[A-Za-z_]+)' include/goradio.inc | awk '{print $2}' | sort) \
-        <(grep -oE '\{"(GoRadio_[A-Za-z_]+)"' src/natives.cpp | tr -d '{"' | sort)
-   ```
+   argument order, then run `make check-names`. That checks both halves
+   of this step: that every native is declared *and* registered, and that
+   no name exceeds **PAWN's 31-character symbol limit**.
+
+   The limit is not a style rule. Past 31 characters the compiler
+   silently truncates the symbol, so the name in the `.amx` stops
+   matching the one `amx_Register` is given and the native never binds --
+   a clean compile and a runtime failure.
+   `GoRadio_GetListedStationListeners` was 33 characters and had to
+   become `GoRadio_GetListedListenerCount`.
 3. **Document it** in the README's native table.
 4. **Cover it** in `test/run_tests.cpp` if it has any logic beyond
    reading a cached field, teaching `test/fake_audioserver.py` the RPC if
    it needs a new one.
 
 Adding a callback is the same, plus the `AmxCallback` dispatch in
-`DispatchPendingEvents` — and the same `diff` trick works on
-`^forward (OnGoRadio...)` versus `AmxCallback("...")`.
+`DispatchPendingEvents`; `make check-names` covers those too.
 
 Step 3 means **two** places now: the README's native table, and the
 matching page under `docs/content/pawn-api/`. The docs are the primary

@@ -192,7 +192,7 @@ All return a request id (> 0), or 0 for an unknown station.
 
 `GoRadio_RequestStationList()` then, once `OnGoRadioStationList` fires,
 `GoRadio_GetListedStationCount()`, `GoRadio_GetListedStationSlug/Name/Logo(index, dest[], len)`
-and `GoRadio_GetListedStationListeners(index)`. This covers every station
+and `GoRadio_GetListedListenerCount(index)`. This covers every station
 the token authorizes — including ones other servers registered — not just
 this plugin's own.
 

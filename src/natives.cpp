@@ -647,9 +647,9 @@ cell AMXAPI n_GetListedStationLogo(AMX *amx, cell *params) {
 	return ListedStationString(amx, params, 2);
 }
 
-// native GoRadio_GetListedStationListeners(index);
-cell AMXAPI n_GetListedStationListeners(AMX *, cell *params) {
-	if (!CheckArgs(params, 1, "GoRadio_GetListedStationListeners")) {
+// native GoRadio_GetListedListenerCount(index);
+cell AMXAPI n_GetListedListenerCount(AMX *, cell *params) {
+	if (!CheckArgs(params, 1, "GoRadio_GetListedListenerCount")) {
 		return 0;
 	}
 	std::vector<StationSummary> listed = Manager::Get().ListedStations();
@@ -720,7 +720,7 @@ const AMX_NATIVE_INFO kNatives[] = {
     {"GoRadio_GetListedStationSlug", n_GetListedStationSlug},
     {"GoRadio_GetListedStationName", n_GetListedStationName},
     {"GoRadio_GetListedStationLogo", n_GetListedStationLogo},
-    {"GoRadio_GetListedStationListeners", n_GetListedStationListeners},
+    {"GoRadio_GetListedListenerCount", n_GetListedListenerCount},
 
     {0, 0}};
 

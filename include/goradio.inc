@@ -283,7 +283,7 @@ native GoRadio_GetListedStationCount();
 native GoRadio_GetListedStationSlug(index, dest[], len = sizeof dest);
 native GoRadio_GetListedStationName(index, dest[], len = sizeof dest);
 native GoRadio_GetListedStationLogo(index, dest[], len = sizeof dest);
-native GoRadio_GetListedStationListeners(index);
+native GoRadio_GetListedListenerCount(index);
 
 
 /* =====================================================================

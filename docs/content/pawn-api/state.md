@@ -183,7 +183,7 @@ native GoRadio_GetListedStationCount();
 native GoRadio_GetListedStationSlug(index, dest[], len = sizeof dest);
 native GoRadio_GetListedStationName(index, dest[], len = sizeof dest);
 native GoRadio_GetListedStationLogo(index, dest[], len = sizeof dest);
-native GoRadio_GetListedStationListeners(index);
+native GoRadio_GetListedListenerCount(index);
 ```
 
 Unlike everything else on this page, these are not scoped to a station
@@ -203,7 +203,7 @@ public OnGoRadioStationList(count)
     {
         GoRadio_GetListedStationSlug(i, slug);
         GoRadio_GetListedStationName(i, name);
-        printf("%s (%s): %d listening", name, slug, GoRadio_GetListedStationListeners(i));
+        printf("%s (%s): %d listening", name, slug, GoRadio_GetListedListenerCount(i));
     }
     return 1;
 }

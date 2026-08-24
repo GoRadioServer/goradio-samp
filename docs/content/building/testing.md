@@ -123,33 +123,89 @@ Two conventions worth keeping:
 - **Assert on observable behaviour**, not internals — the `PawnEvent`s a
   script would see, and what the `GoRadio_Get*` natives would read.
 
-## Compiling the PAWN include
-
-The native declarations in `goradio.inc` are cross-checked against
-`src/natives.cpp` by name and order, but only a compiler catches a
-malformed declaration or a default argument the Pawn parser rejects. CI
-compiles `examples/goradio_example.pwn` on every push.
-
-To do it locally you need the Pawn compiler and the SA-MP standard
-library, neither of which ships here:
+## Checking the PAWN API surface
 
 ```sh
-# The community compiler (the SA-MP Windows package's pawno/pawncc.exe
-# works too)
-curl -fsSLO https://github.com/pawn-lang/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.zip
-unzip pawnc-3.10.11-linux.zip -d pawn
+make check-names
+```
 
-# a_samp.inc and friends
+Two mistakes on this boundary compile perfectly and then fail at runtime,
+so they get a dedicated check:
+
+- **A native declared in `goradio.inc` but not registered in
+  `natives.cpp`** (or the reverse). Scripts compile; calling it throws.
+- **A name longer than 31 characters.** PAWN's symbol limit is 31, and the
+  compiler silently *truncates* past it — so the name baked into the
+  `.amx` no longer matches the one the plugin registers, `amx_Register`
+  never binds it, and the native is simply missing. This is not
+  hypothetical: `GoRadio_GetListedStationListeners` was 33 characters and
+  had to be renamed to `GoRadio_GetListedListenerCount`.
+
+## Compiling the PAWN include
+
+`make check-names` catches the name problems, but only a compiler catches
+a malformed declaration or a default argument the Pawn parser rejects. CI
+compiles `examples/goradio_example.pwn` on every push.
+
+Locally you need three things, none of which ship here — the compiler, and
+**two** separate standard libraries (`pawn-stdlib` has `core.inc` and
+`float.inc`; `samp-stdlib` has `a_samp.inc`; the compiler tarball has
+neither):
+
+```sh
+mkdir -p /tmp/pawn && cd /tmp/pawn
+
+curl -fsSL -O https://github.com/pawn-lang/compiler/releases/download/v3.10.10/pawnc-3.10.10-linux.tar.gz
+tar xzf pawnc-3.10.10-linux.tar.gz
+
+git clone --depth 1 https://github.com/pawn-lang/pawn-stdlib
 git clone --depth 1 https://github.com/pawn-lang/samp-stdlib
+```
 
-./pawn/pawnc-3.10.11-linux/bin/pawncc examples/goradio_example.pwn \
-    -isamp-stdlib -iinclude -o/tmp/example.amx -Z+ -d3
+Then, from the repository root:
+
+```sh
+export LD_LIBRARY_PATH=/tmp/pawn/pawnc-3.10.10-linux/lib
+
+/tmp/pawn/pawnc-3.10.10-linux/bin/pawncc examples/goradio_example.pwn \
+    -i/tmp/pawn/pawn-stdlib -i/tmp/pawn/samp-stdlib -iinclude \
+    -o/tmp/example.amx -Z+ -d3
 ```
 
 `-Z+` is compatibility mode, which is what Pawno uses; the SA-MP standard
-library doesn't compile cleanly without it.
+library doesn't compile cleanly without it. `LD_LIBRARY_PATH` matters
+because `pawncc` loads `libpawnc.so` from the tarball's `lib/`.
 
-## Testing your own script
+Treat **warning 200** as an error if you see it — that's the symbol
+truncation described above.
+
+## Checking the Windows build without Windows
+
+```sh
+make check-windows
+```
+
+Compiles every source against real Windows headers, at both widths, using
+MinGW in a container. It is not MSVC, but it catches the class of error
+that broke a release build: Winsock's `setsockopt` takes `const char *`
+where POSIX takes `const void *`, and only a compiler reliably notices a
+missing cast.
+
+Two details make it worth running rather than decorative, and both were
+learned the hard way:
+
+- It uses the **`-posix` compiler variants**. MinGW's default win32
+  threading model has no `<mutex>` or `<thread>` at all, so the default
+  compilers fail on this code for reasons that say nothing about Windows.
+- It **force-defines `TCP_KEEPIDLE`** and friends to their Windows SDK
+  values. MinGW's headers don't declare them, so the code they guard
+  would be preprocessed away and never checked — which is exactly how the
+  original bug slipped through a first pass of this check.
+
+The MSVC build in CI remains the authority; this is the fast local
+pre-flight.
+
+## Testing your own script## Testing your own script
 
 The plugin's tests don't cover your PAWN. For that, `goradio_debug 1` and
 the server log are the tools — see
