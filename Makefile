@@ -53,7 +53,7 @@ ifeq ($(TLS),1)
 	endif
 endif
 
-.PHONY: all clean test dirs docker check-windows check-names
+.PHONY: all clean test dirs docker check-windows check-names check-exports
 
 all: dirs $(TARGET)
 
@@ -89,6 +89,18 @@ check-windows:
 # PAWN's 31-character symbol limit.
 check-names:
 	@sh scripts/check-names.sh
+
+# Tests the Windows DLL export checker against captured dumpbin output.
+# Needs PowerShell; falls back to Microsoft's container image, which is
+# how it gets run on a machine that has neither PowerShell nor Windows.
+check-exports:
+	@if command -v pwsh >/dev/null 2>&1; then \
+		pwsh -File test/test-dll-exports.ps1; \
+	else \
+		echo "no local pwsh; running in mcr.microsoft.com/powershell"; \
+		docker run --rm -v "$(CURDIR):/src" -w /src \
+			mcr.microsoft.com/powershell:latest pwsh -File test/test-dll-exports.ps1; \
+	fi
 
 clean:
 	rm -rf $(BUILDDIR) $(BINDIR) dist

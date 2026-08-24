@@ -82,6 +82,19 @@ jobs:
           for i in $(seq 50); do [ -s /tmp/url.txt ] && break; sleep 0.1; done
           /tmp/run_tests "$(cat /tmp/url.txt)"
 
+  export-check:
+    name: DLL export checker self-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tests scripts/check-dll-exports.ps1 against captured dumpbin
+      # output. pwsh is preinstalled on the runner, so this needs no
+      # Windows and fails before the Windows jobs even start -- which is
+      # the point: the checker itself shipped broken once.
+      - name: Test the export checker
+        run: pwsh -File test/test-dll-exports.ps1
+
   windows:
     name: Windows (${{ matrix.arch }})
     runs-on: windows-latest

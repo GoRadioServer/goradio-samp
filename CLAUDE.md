@@ -210,3 +210,11 @@ collection *filters* it instead of returning a boolean. So
 `$lines -notmatch "Supports"` is truthy whenever any single line lacks
 the word -- which is always -- and the check fails on a perfectly good
 DLL. Join the output into one string first.
+
+`make check-exports` self-tests that script against captured `dumpbin`
+output, and runs in CI on Linux. There is no Windows here, but there is
+PowerShell: `mcr.microsoft.com/powershell` runs it, and the make target
+falls back to that image when the host has no `pwsh`. Anything reasoned
+about PowerShell semantics can be *checked* that way instead -- which is
+how the array-versus-string behaviour above was confirmed rather than
+guessed at a second time.

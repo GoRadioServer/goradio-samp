@@ -205,7 +205,57 @@ learned the hard way:
 The MSVC build in CI remains the authority; this is the fast local
 pre-flight.
 
-## Testing your own script## Testing your own script
+## Checking the Windows export table
+
+```sh
+make check-exports
+```
+
+A Windows DLL that exports decorated names — `_Supports@0` rather than
+`Supports` — loads as a bare `Failed.` in the server log with nothing
+else said, so `scripts/check-dll-exports.ps1` verifies the six entry
+points on every Windows build and before every release.
+
+This target tests **the checker itself**, against captured `dumpbin`
+output, so it runs anywhere PowerShell does — no Windows, no Visual
+Studio, no DLL. It falls back to Microsoft's PowerShell container if the
+host has no `pwsh`.
+
+It exists because the checker shipped broken: `dumpbin` returns an
+*array* of lines, and PowerShell's `-match`/`-notmatch` on a collection
+**filters the collection** rather than returning a boolean. So
+`$lines -notmatch "Supports"` yielded every line lacking the word — a
+non-empty, and therefore truthy, array — and the check reported a missing
+export against a perfectly good DLL. The tests pin that behaviour down,
+including the case where the raw array is passed in: it now fails loudly
+at the parameter instead of misreporting.
+
+## Testing your own script## Checking the Windows export table
+
+```sh
+make check-exports
+```
+
+A Windows DLL that exports decorated names — `_Supports@0` rather than
+`Supports` — loads as a bare `Failed.` in the server log with nothing
+else said, so `scripts/check-dll-exports.ps1` verifies the six entry
+points on every Windows build and before every release.
+
+This target tests **the checker itself**, against captured `dumpbin`
+output, so it runs anywhere PowerShell does — no Windows, no Visual
+Studio, no DLL. It falls back to Microsoft's PowerShell container if the
+host has no `pwsh`.
+
+It exists because the checker shipped broken: `dumpbin` returns an
+*array* of lines, and PowerShell's `-match`/`-notmatch` on a collection
+**filters the collection** rather than returning a boolean. So
+`$lines -notmatch "Supports"` yielded every line lacking the word — a
+non-empty, and therefore truthy, array — and the check reported a missing
+export against a perfectly good DLL. The tests pin that behaviour down,
+including the case where the raw array is passed in: it now fails loudly
+at the parameter instead of misreporting.
+
+## Testing your own script
 
 The plugin's tests don't cover your PAWN. For that, `goradio_debug 1` and
 the server log are the tools — see
