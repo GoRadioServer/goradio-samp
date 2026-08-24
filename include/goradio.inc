@@ -25,6 +25,11 @@
  * is no such station. */
 #define INVALID_RADIO_STATION           (-1)
 
+/* What GoRadio_ReloadConfig managed to do. */
+#define GORADIO_RELOAD_FAILED           (0)  /* server.cfg unreadable, or the new settings were rejected */
+#define GORADIO_RELOAD_APPLIED          (1)  /* everything in the file is now in effect */
+#define GORADIO_RELOAD_PARTIAL          (2)  /* live settings applied; the connection was left alone */
+
 /* Where a queued item goes. Mirrors audioserver.v1.QueueMode. */
 #define RADIO_QUEUE_APPEND              (0)  /* the back of the queue (default) */
 #define RADIO_QUEUE_PLAY_NEXT           (1)  /* the front; plays when the current item finishes */
@@ -53,6 +58,37 @@ native GoRadio_SetServer(const url[], const token[]);
 /* 1 once an audio server has been configured (from server.cfg or
  * GoRadio_SetServer). Says nothing about reachability. */
 native GoRadio_IsReady();
+
+/*
+ * Re-reads the goradio_* settings from server.cfg and applies them,
+ * without restarting the server. Useful for an admin command that
+ * retunes polling or flips debug logging while you're diagnosing
+ * something.
+ *
+ * How much it can apply depends on what changed:
+ *
+ *   GORADIO_RELOAD_APPLIED   everything in the file is now in effect.
+ *   GORADIO_RELOAD_PARTIAL   goradio_debug and goradio_poll_interval were
+ *                            applied, but goradio_url, goradio_token,
+ *                            goradio_workers and goradio_timeout were
+ *                            left alone because stations are currently
+ *                            registered. Those build the worker
+ *                            connections and the registrations that hang
+ *                            off them, so changing them under a live
+ *                            station would strand it on the old server.
+ *                            Destroy your stations first if you need
+ *                            them to take effect.
+ *   GORADIO_RELOAD_FAILED    server.cfg could not be read, contains no
+ *                            goradio_* settings, or the new ones were
+ *                            rejected (a malformed URL, an empty token).
+ *                            Nothing connection-related changed; the
+ *                            reason is in the server log.
+ *
+ * A changed poll interval takes effect at the poller's next wake-up
+ * rather than instantly, so allow up to one old interval for it to
+ * settle.
+ */
+native GoRadio_ReloadConfig();
 
 /* The audio server's build version, once OnGoRadioServerInfo has fired.
  * Returns 0 (and an empty string) before that. */

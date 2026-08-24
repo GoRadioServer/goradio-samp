@@ -117,6 +117,51 @@ bool Manager::Configure(const ManagerConfig &config, std::string *err) {
 	return true;
 }
 
+ReloadResult Manager::Reload(const ManagerConfig &config, std::string *err) {
+	if (!running_) {
+		// Nothing is up yet, so there is nothing to preserve -- this is
+		// just a first-time configure that happens to arrive via reload.
+		return Configure(config, err) ? kReloadApplied : kReloadFailed;
+	}
+
+	bool connection_differs;
+	bool stations_exist;
+	{
+		std::lock_guard<std::mutex> lock(state_mutex_);
+		connection_differs = config_.ConnectionDiffers(config);
+		stations_exist = !stations_.empty();
+
+		// Safe to change under a running pool: the poller re-reads this
+		// every cycle, so a new value takes effect at the next wake-up
+		// rather than immediately.
+		if (config_.poll_interval_ms != config.poll_interval_ms) {
+			LogInfo(Format("status poll interval is now %ds (was %ds)",
+			               config.poll_interval_ms / 1000, config_.poll_interval_ms / 1000));
+		}
+		config_.poll_interval_ms = config.poll_interval_ms;
+	}
+
+	if (!connection_differs) {
+		return kReloadApplied;
+	}
+
+	if (stations_exist) {
+		// Re-pointing now would strand those registrations on the old
+		// server, so the connection settings are left as they are and the
+		// caller is told exactly that.
+		*err =
+		    "the audio server URL, token, worker count and timeout were left unchanged because "
+		    "stations are registered -- destroy them first, or restart the server";
+		LogWarn("reload: " + *err);
+		return kReloadPartial;
+	}
+
+	// No stations, so the pool can be retired and rebuilt on the new
+	// settings without anything being left behind.
+	LogInfo("reload: audio server settings changed, restarting workers");
+	return Configure(config, err) ? kReloadApplied : kReloadFailed;
+}
+
 void Manager::Shutdown() {
 	if (!running_) {
 		return;

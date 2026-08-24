@@ -136,8 +136,60 @@ running somewhere nothing is watching them.
 Prefer `server.cfg` where you can. A token hardcoded in a gamemode is a
 token in your source control.
 
+## Reloading without a restart
+
+`server.cfg` is read once at plugin load, but
+[`GoRadio_ReloadConfig`](../pawn-api/index.md#goradio_reloadconfig) re-reads
+and applies it on demand — handy as an admin command while you're
+diagnosing something:
+
+```pawn
+CMD:radioreload(playerid, params[])
+{
+    if (!IsPlayerAdmin(playerid)) return 0;
+
+    switch (GoRadio_ReloadConfig())
+    {
+        case GORADIO_RELOAD_APPLIED:
+            SendClientMessage(playerid, -1, "Radio config reloaded.");
+
+        case GORADIO_RELOAD_PARTIAL:
+            SendClientMessage(playerid, -1,
+                "Reloaded. Server/token changes need the stations destroyed first.");
+
+        case GORADIO_RELOAD_FAILED:
+            SendClientMessage(playerid, -1, "Reload failed -- check the server log.");
+    }
+    return 1;
+}
+```
+
+How much it can apply depends on what you changed:
+
+| Setting | Reloadable while stations are registered? |
+|---|---|
+| `goradio_debug` | Yes, immediately. |
+| `goradio_poll_interval` | Yes, from the poller's next wake-up. |
+| `goradio_url` | No |
+| `goradio_token` | No |
+| `goradio_workers` | No |
+| `goradio_timeout` | No |
+
+The bottom four build the worker connections, and the station
+registrations hang off those — re-pointing them under a live station
+would leave it registered on a server nothing is watching any more. So
+they are skipped, the native returns `GORADIO_RELOAD_PARTIAL`, and the
+log says which settings were left alone. Destroy your stations first (or
+restart the server) if you need them to take effect.
+
+With **no** stations registered, everything reloads: the worker pool is
+retired and rebuilt on the new settings.
+
 ## Precedence
 
-`server.cfg` is read once at plugin load. `GoRadio_SetServer` overrides
-whatever it found, provided no station exists yet. There is no reload —
-changing `server.cfg` needs a server restart.
+`server.cfg` is read at plugin load and again on every
+`GoRadio_ReloadConfig`. `GoRadio_SetServer` overrides whatever it found,
+provided no station exists yet.
+
+Settings the file doesn't mention keep their defaults rather than being
+cleared, so a partial `server.cfg` is fine.

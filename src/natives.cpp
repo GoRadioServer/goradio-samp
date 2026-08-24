@@ -6,6 +6,7 @@
 #include "amxutil.h"
 #include "log.h"
 #include "manager.h"
+#include "serverconfig.h"
 
 namespace goradio {
 namespace {
@@ -82,6 +83,36 @@ cell AMXAPI n_SetServer(AMX *amx, cell *params) {
 
 // native GoRadio_IsReady();
 cell AMXAPI n_IsReady(AMX *, cell *) { return Manager::Get().configured() ? 1 : 0; }
+
+// native GoRadio_ReloadConfig();
+cell AMXAPI n_ReloadConfig(AMX *, cell *) {
+	ManagerConfig config;
+	bool debug = false;
+	if (!ReadServerCfg(&config, &debug)) {
+		LogError("GoRadio_ReloadConfig: server.cfg could not be read, or has no goradio_* settings");
+		return kReloadFailed;
+	}
+
+	// Applied before anything else, so that a reload turned on to
+	// diagnose a reload problem logs the reload itself.
+	LogSetDebug(debug);
+
+	std::string err;
+	ReloadResult result = Manager::Get().Reload(config, &err);
+	switch (result) {
+		case kReloadApplied:
+			LogInfo("configuration reloaded from server.cfg");
+			break;
+		case kReloadPartial:
+			LogWarn("configuration partially reloaded from server.cfg");
+			break;
+		case kReloadFailed:
+		default:
+			LogError("GoRadio_ReloadConfig: " + err);
+			break;
+	}
+	return result;
+}
 
 // native GoRadio_GetServerVersion(dest[], len = sizeof dest);
 cell AMXAPI n_GetServerVersion(AMX *amx, cell *params) {
@@ -663,6 +694,7 @@ cell AMXAPI n_GetListedListenerCount(AMX *, cell *params) {
 const AMX_NATIVE_INFO kNatives[] = {
     {"GoRadio_SetServer", n_SetServer},
     {"GoRadio_IsReady", n_IsReady},
+    {"GoRadio_ReloadConfig", n_ReloadConfig},
     {"GoRadio_GetServerVersion", n_GetServerVersion},
 
     {"GoRadio_CreateStation", n_CreateStation},

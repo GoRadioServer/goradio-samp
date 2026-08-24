@@ -68,7 +68,25 @@ struct ManagerConfig {
 	int timeout_ms;
 	int workers;
 
-	ManagerConfig() : poll_interval_ms(5000), timeout_ms(10000), workers(2) {}
+	ManagerConfig()
+	    : url("http://127.0.0.1:9090"), poll_interval_ms(5000), timeout_ms(10000), workers(2) {}
+
+	// The settings that can't be changed without rebuilding the worker
+	// pool, because each worker's connection is built from them once.
+	bool ConnectionDiffers(const ManagerConfig &other) const {
+		return url != other.url || token != other.token || timeout_ms != other.timeout_ms ||
+		       workers != other.workers;
+	}
+};
+
+// What GoRadio_ReloadConfig managed to do. The numbers are the native's
+// return value; goradio.inc has the matching constants.
+enum ReloadResult {
+	kReloadFailed = 0,
+	kReloadApplied = 1,
+	// The live settings were applied, but the audio server connection was
+	// left alone because stations are registered against it.
+	kReloadPartial = 2
 };
 
 // Owns every station, the worker threads that talk to the audio server,
@@ -83,6 +101,16 @@ public:
 	// registrations bound to the old server, and silently re-pointing
 	// them would leave stations registered somewhere nothing is watching.
 	bool Configure(const ManagerConfig &config, std::string *err);
+
+	// Applies a freshly read configuration to a plugin that is already
+	// running. Settings that can be changed underneath live connections
+	// (the status poll interval) always take effect; the audio server
+	// URL, token, worker count and timeout can only change while no
+	// station is registered, since the workers' connections and those
+	// registrations are built from them. Returns kReloadPartial when it
+	// applied the former and had to skip the latter, with *err saying
+	// which.
+	ReloadResult Reload(const ManagerConfig &config, std::string *err);
 	bool configured();
 	std::string server_version();
 	std::string server_url();

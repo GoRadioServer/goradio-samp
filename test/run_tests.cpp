@@ -237,8 +237,35 @@ void TestManagerSession(const std::string &url) {
 	Check(ev.flag, "re-registration is flagged as such");
 	Check(ev.num1 != 0, "re-registration is flagged as reconnect-driven");
 
+	// Reloading: what it can and cannot change while a station is live.
+	ManagerConfig reload = config;
+	std::string reload_err;
+	CheckEqInt(mgr.Reload(reload, &reload_err), kReloadApplied,
+	           "reloading an unchanged config succeeds as a no-op");
+
+	reload.poll_interval_ms = 2000;
+	CheckEqInt(mgr.Reload(reload, &reload_err), kReloadApplied,
+	           "the poll interval can change under a live station");
+
+	// Somewhere nothing is listening -- the point is that it is a
+	// *different* server, not that it works.
+	reload.url = "http://127.0.0.1:1";
+	CheckEqInt(mgr.Reload(reload, &reload_err), kReloadPartial,
+	           "the audio server cannot be re-pointed under a live station");
+	Check(!reload_err.empty(), "a partial reload explains what it skipped");
+	Check(mgr.IsRegistered(station), "a partial reload leaves the station alone");
+
 	Check(mgr.DestroyStation(station), "DestroyStation");
 	Check(!mgr.IsValidStation(station), "station id is no longer valid");
+
+	// With no stations left there is nothing to strand, so the connection
+	// settings apply and the worker pool is rebuilt on them.
+	reload.url = config.url;
+	reload.workers = 1;
+	CheckEqInt(mgr.Reload(reload, &reload_err), kReloadApplied,
+	           "with no stations, connection settings apply");
+	Check(WaitFor(kEvServerInfo, 5000, &ev), "the rebuilt worker pool answers");
+
 	mgr.Shutdown();
 	std::printf("  ok   Shutdown returned\n");
 	++g_checks;

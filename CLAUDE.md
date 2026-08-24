@@ -16,6 +16,7 @@ Everything is dependency-free and hand-written:
 | Layer | Files | Does |
 |---|---|---|
 | SA-MP ABI | `sdk/`, `src/plugin.cpp`, `src/amxutil.*` | Entry points, native registration, calling PAWN publics |
+| Config | `src/serverconfig.*` | Parses `goradio_*` out of `server.cfg`, at load and on reload |
 | PAWN API | `src/natives.cpp`, `include/goradio.inc` | Every `GoRadio_*` native and `OnGoRadio*` callback |
 | Orchestration | `src/manager.*`, `src/station.*` | Stations, worker threads, event streams, reconnect, the status cache |
 | Protocol | `src/connect_client.*` | Unary RPCs and the 5-byte Connect envelope framing |

@@ -97,6 +97,27 @@ native GoRadio_IsReady();
 nothing about whether it is reachable — a station created before the audio
 server is up is legitimate and will register when it appears.
 
+### `GoRadio_ReloadConfig`
+
+```pawn
+native GoRadio_ReloadConfig();
+```
+
+Re-reads the `goradio_*` settings from `server.cfg` and applies them,
+without restarting the server. Returns:
+
+| Constant | Meaning |
+|---|---|
+| `GORADIO_RELOAD_APPLIED` | Everything in the file is now in effect. |
+| `GORADIO_RELOAD_PARTIAL` | `goradio_debug` and `goradio_poll_interval` applied; the audio server URL, token, worker count and timeout were left alone because stations are registered. |
+| `GORADIO_RELOAD_FAILED` | `server.cfg` was unreadable, had no `goradio_*` settings, or the new ones were rejected. Nothing connection-related changed; the log says why. |
+
+A changed poll interval takes effect at the poller's next wake-up, so
+allow up to one old interval for it to settle.
+
+See [Configuration → Reloading without a restart](../getting-started/configuration.md#reloading-without-a-restart)
+for which settings are reloadable and why, and a worked admin command.
+
 ### `GoRadio_GetServerVersion`
 
 ```pawn
@@ -121,7 +142,7 @@ locally built binary). Returns `0` with an empty string until
 
 | Native | Page |
 |---|---|
-| `GoRadio_SetServer`, `GoRadio_IsReady`, `GoRadio_GetServerVersion` | this page |
+| `GoRadio_SetServer`, `GoRadio_IsReady`, `GoRadio_ReloadConfig`, `GoRadio_GetServerVersion` | this page |
 | `GoRadio_CreateStation`, `GoRadio_DestroyStation`, `GoRadio_UpdateStation` | [Stations](stations.md) |
 | `GoRadio_IsValidStation`, `GoRadio_IsStationRegistered` | [Stations](stations.md) |
 | `GoRadio_GetStationBySlug`, `GoRadio_GetStationCount`, `GoRadio_GetStationAtIndex` | [Stations](stations.md) |

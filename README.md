@@ -137,6 +137,7 @@ restart while still looking perfectly connected.
 |---|---|
 | `GoRadio_SetServer(const url[], const token[])` | 1 if accepted. Before any station exists. |
 | `GoRadio_IsReady()` | 1 once a server is configured. |
+| `GoRadio_ReloadConfig()` | Re-reads `server.cfg` at runtime. Returns applied / partial / failed. |
 | `GoRadio_GetServerVersion(dest[], len)` | The audio server's build version. |
 
 ### Stations
