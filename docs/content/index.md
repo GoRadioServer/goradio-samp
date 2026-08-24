@@ -1,6 +1,6 @@
 # goradio-samp
 
-A SA-MP server plugin that creates and drives [GoRadio](https://github.com/tmfksoft/goradio)
+A SA-MP server plugin that creates and drives [GoRadio](https://github.com/goradioserver/goradio)
 stations from PAWN.
 
 Your gamemode registers stations, queues tracks, skips, pauses and seeks,

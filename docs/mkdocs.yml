@@ -1,8 +1,8 @@
 site_name: goradio-samp
 site_description: A SA-MP server plugin for creating and driving GoRadio stations from PAWN.
-site_url: https://tmfksoft.github.io/goradio-samp/
-repo_url: https://github.com/tmfksoft/goradio-samp
-repo_name: tmfksoft/goradio-samp
+site_url: https://goradioserver.github.io/goradio-samp/
+repo_url: https://github.com/goradioserver/goradio-samp
+repo_name: goradioserver/goradio-samp
 edit_uri: edit/main/docs/content/
 
 docs_dir: content
@@ -73,8 +73,13 @@ validation:
   unrecognized_links: warn
   anchors: warn
 
+# Material for MkDocs ships its own search implementation under the
+# namespaced plugin id "material/search" (mkdocs-material 9.x). The
+# theme's header template only renders the search box/icon for that exact
+# id -- the plain "search" id MkDocs falls back to resolves to mkdocs'
+# own built-in plugin instead, which the header silently ignores.
 plugins:
-  - search
+  - material/search
 
 nav:
   - Home: index.md

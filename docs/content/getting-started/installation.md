@@ -2,7 +2,7 @@
 
 ## What you need first
 
-A running [GoRadio](https://github.com/tmfksoft/goradio) audio server
+A running [GoRadio](https://github.com/goradioserver/goradio) audio server
 (`radio serve`) and a token for it. The plugin is a controller — it has no
 audio pipeline of its own and does nothing useful without a server to
 drive.
@@ -15,7 +15,7 @@ radio tokengen --slugs myfm,chillfm --write
 
 A read-only token can register nothing and queue nothing; every write RPC
 comes back `permission_denied`. See the audio server's
-[tokengen docs](https://github.com/tmfksoft/goradio) for the full flag set.
+[tokengen docs](https://github.com/goradioserver/goradio) for the full flag set.
 
 ## Installing the plugin
 

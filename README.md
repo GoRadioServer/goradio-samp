@@ -3,7 +3,7 @@
 A SA-MP server plugin that creates and drives one or more
 [GoRadio](../gta-radio-golang) stations from PAWN.
 
-**📖 [Full documentation](https://tmfksoft.github.io/goradio-samp/)** —
+**📖 [Full documentation](https://goradioserver.github.io/goradio-samp/)** —
 installation, how it works, the complete PAWN API, guides and
 troubleshooting.
 
@@ -40,7 +40,7 @@ response carrying Connect envelopes, so the plugin gets pushed events
 ## Installing
 
 Grab the archive for your platform from
-[Releases](https://github.com/tmfksoft/goradio-samp/releases) — it mirrors
+[Releases](https://github.com/goradioserver/goradio-samp/releases) — it mirrors
 a SA-MP server directory, so you can copy the folders straight over your
 server root.
 

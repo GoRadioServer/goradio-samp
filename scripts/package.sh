@@ -58,7 +58,7 @@ cat > "$stage/INSTALL.txt" <<EOF
 goradio ${version} (${platform})
 
 A SA-MP plugin for creating and driving GoRadio stations from PAWN.
-Documentation: https://tmfksoft.github.io/goradio-samp/
+Documentation: https://goradioserver.github.io/goradio-samp/
 
 INSTALLING
 
