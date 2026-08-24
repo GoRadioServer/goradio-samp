@@ -111,9 +111,8 @@ Release builds pass the tag in explicitly.
 ## TLS
 
 Plain HTTP is the default, on the assumption the audio server is on a
-trusted network — often the same host.
-
-If it sits behind a TLS-terminating proxy, build with OpenSSL:
+trusted network — often the same host. Releases ship both variants, so
+you only need this if you're building yourself.
 
 ```sh
 make TLS=1
@@ -124,8 +123,20 @@ Certificates and hostnames are both verified, with SNI. A non-TLS build
 given an `https://` URL refuses it and says so, rather than quietly
 falling back to plaintext with your token in it.
 
-For a 32-bit TLS build you need 32-bit OpenSSL development files
-(`libssl-dev:i386` on Debian, which is already in the Docker image).
+**OpenSSL is linked statically by default.** A plugin that needs a
+matching `libssl` on the target box is not much use to a SA-MP server
+running an older OpenSSL than the build machine, so a TLS build carries
+its own — the result depends on nothing but libc, at the cost of about
+5MB. Pass `OPENSSL_STATIC=0` to link against the system OpenSSL instead.
+
+For a 32-bit TLS build you need 32-bit OpenSSL development files, which
+Ubuntu does not reliably package. The Docker image has them:
+
+```sh
+make docker TLS=1          # 32-bit, TLS, no host dependencies
+```
+
+That's also how the release builds are produced.
 
 ## Build options
 

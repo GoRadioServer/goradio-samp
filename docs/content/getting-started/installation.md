@@ -68,11 +68,42 @@ comes back `permission_denied`. See the audio server's
     It means the URL is reachable *and* the token was accepted. If it
     doesn't appear, see [Troubleshooting](../guides/troubleshooting.md).
 
-## Where the binary comes from
+## Which download
 
-There are no prebuilt binaries yet; build it from source with
-[`make`](../building/index.md). It takes a few seconds and has no
-dependencies beyond a C++11 compiler.
+Each release ships eight archives: four platforms, each with and without
+TLS.
+
+| Platform | Plain | With TLS |
+|---|---|---|
+| Linux `samp03svr` (32-bit) | `linux-x86` | `linux-x86-tls` |
+| Windows `samp-server.exe` (32-bit) | `windows-x86` | `windows-x86-tls` |
+| Linux open.mp (64-bit) | `linux-x86_64` | `linux-x86_64-tls` |
+| Windows open.mp (64-bit) | `windows-x86_64` | `windows-x86_64-tls` |
+
+Take a **`-tls`** build if `goradio_url` needs to be an `https://`
+address — an audio server behind a TLS-terminating proxy, or reached
+across the public internet. OpenSSL is linked in statically, so nothing
+needs installing on the server.
+
+Take a **plain** build if the audio server is on the same host or a
+private network. It's smaller, and it speaks HTTP only.
+
+The file inside is `goradio.so` / `goradio.dll` either way, so switching
+variants later is a file copy with no `server.cfg` change. A plain build
+given an `https://` URL refuses it at startup rather than quietly sending
+your token in the clear:
+
+```
+[goradio] goradio 1.0.0 loaded (http only)
+[goradio] ERROR: server.cfg: this build has no TLS support, so it cannot
+          use an https:// audio server URL
+```
+
+The banner line says which variant you have — `(http only)` or
+`(https supported)`.
+
+You can also [build from source](../building/index.md); it takes a few
+seconds and needs nothing but a C++11 compiler.
 
 !!! warning "SA-MP is 32-bit"
     `samp03svr` is a 32-bit process and will refuse to load a 64-bit

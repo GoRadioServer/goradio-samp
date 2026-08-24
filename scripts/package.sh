@@ -38,6 +38,22 @@ cp "$root/README.md" "$stage/"
 
 plugin_file=$(basename "$binary")
 
+# The platform label carries the variant, e.g. linux-x86-tls.
+case "$platform" in
+	*-tls)
+		tls_note="  This build speaks https:// as well as http://. OpenSSL is linked in
+  statically, so nothing needs installing on the server. Use it when your
+  audio server sits behind a TLS-terminating proxy; otherwise the smaller
+  non-TLS build is the one you want."
+		;;
+	*)
+		tls_note="  This build speaks plain HTTP only. If goradio_url has to be an
+  https:// address, download the -tls build of the same platform instead.
+  This one refuses such a URL at startup rather than silently sending
+  your token in the clear."
+		;;
+esac
+
 cat > "$stage/INSTALL.txt" <<EOF
 goradio ${version} (${platform})
 
@@ -82,6 +98,10 @@ REQUIREMENTS
 
   This build is ${platform}. samp03svr is 32-bit and will not load an
   x86_64 build; open.mp is 64-bit and will not load an x86 one.
+
+TLS
+
+${tls_note}
 EOF
 
 mkdir -p "$root/dist"

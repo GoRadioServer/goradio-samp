@@ -44,15 +44,20 @@ Grab the archive for your platform from
 a SA-MP server directory, so you can copy the folders straight over your
 server root.
 
-| Download | For |
-|---|---|
-| `goradio-<version>-linux-x86.tar.gz` | Linux `samp03svr` (32-bit) |
-| `goradio-<version>-windows-x86.zip` | Windows `samp-server.exe` (32-bit) |
-| `goradio-<version>-linux-x86_64.tar.gz` | Linux open.mp (64-bit) |
-| `goradio-<version>-windows-x86_64.zip` | Windows open.mp (64-bit) |
+| Platform | Plain | With TLS |
+|---|---|---|
+| Linux `samp03svr` (32-bit) | `linux-x86` | `linux-x86-tls` |
+| Windows `samp-server.exe` (32-bit) | `windows-x86` | `windows-x86-tls` |
+| Linux open.mp (64-bit) | `linux-x86_64` | `linux-x86_64-tls` |
+| Windows open.mp (64-bit) | `windows-x86_64` | `windows-x86_64-tls` |
 
 SA-MP is a 32-bit process and will not load an x86_64 build — if the log
 says `Failed.` next to the plugin, that is almost always why.
+
+Take a `-tls` build if `goradio_url` needs to be an `https://` address;
+OpenSSL is linked in statically, so nothing needs installing on the
+server. The plain builds speak HTTP only and refuse an `https://` URL at
+startup rather than quietly sending your token in the clear.
 
 Then:
 
@@ -236,7 +241,7 @@ Linux, with `make`:
 ```sh
 make                # bin/goradio.so, 32-bit -- what samp03svr loads
 make BITS=64        # 64-bit, for open.mp or local testing
-make TLS=1          # link OpenSSL, so https:// URLs work
+make TLS=1          # link OpenSSL statically, so https:// URLs work
 make test           # host-side tests, no SA-MP server needed
 ```
 

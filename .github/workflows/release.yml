@@ -33,30 +33,38 @@ jobs:
     strategy:
       matrix:
         include:
-          # samp03svr is 32-bit; open.mp is 64-bit. Both are shipped.
+          # samp03svr is 32-bit; open.mp is 64-bit. Each ships with and
+          # without TLS -- see the release notes for which to pick.
           - bits: 32
+            tls: 0
             platform: linux-x86
+          - bits: 32
+            tls: 1
+            platform: linux-x86-tls
           - bits: 64
+            tls: 0
             platform: linux-x86_64
+          - bits: 64
+            tls: 1
+            platform: linux-x86_64-tls
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install the 32-bit toolchain
-        if: matrix.bits == 32
-        run: sudo apt-get update && sudo apt-get install -y g++-multilib
-
+      # Built in the repo's own toolchain container rather than on the
+      # runner: it carries the 32-bit toolchain and, more importantly,
+      # libssl-dev:i386, which Ubuntu's runner image does not reliably
+      # have. The image also asserts the architecture, the six-symbol
+      # export list, and that a TLS build has no libssl runtime
+      # dependency.
       - name: Build
-        run: make BITS=${{ matrix.bits }} VERSION=${{ needs.version.outputs.value }}
+        run: |
+          make docker \
+            BITS=${{ matrix.bits }} \
+            TLS=${{ matrix.tls }} \
+            VERSION=${{ needs.version.outputs.value }}
 
       - name: Test
-        run: sh test/run_tests.sh
-        env:
-          BITS: ${{ matrix.bits }}
-
-      - name: Verify the architecture
-        run: |
-          readelf -h bin/goradio.so | grep -q "ELF${{ matrix.bits }}" \
-            || { echo "wrong architecture for ${{ matrix.platform }}"; exit 1; }
+        run: docker build --target test --build-arg BITS=${{ matrix.bits }} .
 
       - name: Package
         run: |
@@ -76,17 +84,47 @@ jobs:
       matrix:
         include:
           - arch: Win32
+            triplet: x86-windows-static-md
+            tls: "OFF"
             platform: windows-x86
+          - arch: Win32
+            triplet: x86-windows-static-md
+            tls: "ON"
+            platform: windows-x86-tls
           - arch: x64
+            triplet: x64-windows-static-md
+            tls: "OFF"
             platform: windows-x86_64
+          - arch: x64
+            triplet: x64-windows-static-md
+            tls: "ON"
+            platform: windows-x86_64-tls
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure
+      # static-md: OpenSSL linked statically, against the dynamic CRT the
+      # server itself uses. A plugin that needs libssl beside the .dll
+      # would be no better than not shipping TLS at all.
+      - name: Install OpenSSL
+        if: matrix.tls == 'ON'
+        run: vcpkg install openssl:${{ matrix.triplet }}
+
+      - name: Configure (no TLS)
+        if: matrix.tls == 'OFF'
         run: >
           cmake -B build -A ${{ matrix.arch }}
           -DGORADIO_32BIT=OFF
           -DGORADIO_VERSION=${{ needs.version.outputs.value }}
+
+      - name: Configure (TLS)
+        if: matrix.tls == 'ON'
+        run: >
+          cmake -B build -A ${{ matrix.arch }}
+          -DGORADIO_32BIT=OFF
+          -DGORADIO_TLS=ON
+          -DGORADIO_VERSION=${{ needs.version.outputs.value }}
+          -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
 
       - name: Build
         run: cmake --build build --config Release
@@ -104,7 +142,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: [windows-x86, windows-x86_64]
+        platform: [windows-x86, windows-x86-tls, windows-x86_64, windows-x86_64-tls]
     steps:
       - uses: actions/checkout@v4
 
@@ -155,6 +193,8 @@ jobs:
           body: |
             ## Which download
 
+            Pick your platform, then decide whether you need TLS.
+
             | File | For |
             |---|---|
             | `goradio-${{ needs.version.outputs.value }}-linux-x86.tar.gz` | Linux `samp03svr` (32-bit) |
@@ -165,6 +205,33 @@ jobs:
             SA-MP is a 32-bit process and will not load an x86_64 build.
             If the server log says `Failed.` next to the plugin, that is
             almost always why.
+
+            ### `-tls` builds
+
+            The same four, with OpenSSL linked in statically:
+
+            | File | For |
+            |---|---|
+            | `goradio-${{ needs.version.outputs.value }}-linux-x86-tls.tar.gz` | Linux `samp03svr` (32-bit) |
+            | `goradio-${{ needs.version.outputs.value }}-windows-x86-tls.zip` | Windows `samp-server.exe` (32-bit) |
+            | `goradio-${{ needs.version.outputs.value }}-linux-x86_64-tls.tar.gz` | Linux open.mp (64-bit) |
+            | `goradio-${{ needs.version.outputs.value }}-windows-x86_64-tls.zip` | Windows open.mp (64-bit) |
+
+            Take one of these if `goradio_url` needs to be an **`https://`**
+            address — an audio server behind a TLS-terminating proxy, or
+            reached across the public internet. Nothing needs installing
+            on the server; OpenSSL is inside the binary.
+
+            The plain builds speak HTTP only and **refuse** an `https://`
+            URL at startup rather than quietly sending your token in the
+            clear. If your audio server is on the same host or a private
+            network, they are the smaller, simpler choice.
+
+            Both variants are otherwise identical, and the file inside is
+            `goradio.so` / `goradio.dll` either way — swapping variants is
+            a file copy, with no `server.cfg` change.
+
+            ### Installing
 
             Each archive mirrors a SA-MP server directory — copy the
             folders over your server root. `INSTALL.txt` inside has the

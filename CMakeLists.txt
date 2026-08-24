@@ -65,7 +65,16 @@ if(WIN32)
 endif()
 
 if(GORADIO_TLS)
+	# Static by default: a plugin that needs a matching libssl on the
+	# target box is not much use to a SA-MP server running an older
+	# OpenSSL than the build machine. A release binary carries its own.
+	set(OPENSSL_USE_STATIC_LIBS ON)
 	find_package(OpenSSL REQUIRED)
 	target_compile_definitions(goradio PRIVATE GORADIO_TLS)
 	target_link_libraries(goradio PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+	if(WIN32)
+		# Static OpenSSL on Windows pulls in the platform crypto and
+		# registry APIs that its own code calls.
+		target_link_libraries(goradio PRIVATE crypt32 advapi32 user32)
+	endif()
 endif()

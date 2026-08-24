@@ -31,7 +31,7 @@ Accepted forms:
 |---|---|
 | `http://host:9090` | Plain HTTP. |
 | `host:9090` | The same thing; a missing scheme means `http`. |
-| `https://radio.example.com` | TLS. Needs a [TLS build](../building/index.md#tls); port defaults to 443. |
+| `https://radio.example.com` | TLS. Needs a **`-tls`** [download](installation.md#which-download) or build; port defaults to 443. |
 | `http://host:9090/prefix` | A path prefix, for a reverse proxy that mounts the server under a subpath. |
 
 A non-TLS build given an `https://` URL refuses it with an explanation

@@ -41,6 +41,24 @@ jobs:
           # into one process -- so this staying at six is load-bearing.
           test "$exports" = "AmxLoad AmxUnload Load ProcessTick Supports Unload "
 
+  linux-tls:
+    name: Linux TLS (${{ matrix.bits }}-bit)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bits: [32, 64]
+    steps:
+      - uses: actions/checkout@v4
+
+      # In the container, which has libssl-dev for both architectures --
+      # Ubuntu's runner image does not reliably carry the i386 one. The
+      # image asserts the architecture, that exactly six symbols are
+      # exported (static OpenSSL would otherwise publish thousands), and
+      # that the result has no libssl runtime dependency.
+      - name: Build with TLS
+        run: make docker BITS=${{ matrix.bits }} TLS=1
+
   sanitizers:
     name: Sanitizers
     runs-on: ubuntu-latest
@@ -96,6 +114,44 @@ jobs:
             if ($out -notmatch "\b$fn\b") { throw "missing export: $fn" }
           }
           Write-Host "all six entry points exported"
+
+  windows-tls:
+    name: Windows TLS (${{ matrix.arch }})
+    # Only on pushes: vcpkg builds OpenSSL from source, which is slow
+    # enough that putting it on every PR would not pay for itself. This
+    # still runs before any tag, which is the point.
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: Win32
+            triplet: x86-windows-static-md
+          - arch: x64
+            triplet: x64-windows-static-md
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenSSL
+        run: vcpkg install openssl:${{ matrix.triplet }}
+
+      - name: Configure
+        run: >
+          cmake -B build -A ${{ matrix.arch }}
+          -DGORADIO_32BIT=OFF
+          -DGORADIO_TLS=ON
+          -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Check it produced a DLL
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "build/Release/goradio.dll")) { throw "goradio.dll was not produced" }
+          Write-Host "TLS build produced $((Get-Item build/Release/goradio.dll).Length) bytes"
 
   pawn:
     name: PAWN API surface

@@ -48,6 +48,21 @@ RUN readelf -h bin/goradio.so | grep -q "ELF${BITS}" \
 		|| (echo "expected a ${BITS}-bit binary; got:" >&2 \
 			&& readelf -h bin/goradio.so | head -3 >&2 && exit 1)
 
+# A TLS build links OpenSSL statically, which without the version script
+# would publish thousands of OpenSSL symbols from a library loaded into a
+# process alongside other plugins. Six is the whole intended surface.
+RUN n=$(nm -D --defined-only bin/goradio.so | wc -l); \
+	test "$n" -eq 6 \
+		|| (echo "expected 6 exported symbols, got $n:" >&2 \
+			&& nm -D --defined-only bin/goradio.so >&2 && exit 1)
+
+# And nothing but libc should be needed at runtime -- an OpenSSL that has
+# to be present on the target box defeats the point of the TLS build.
+RUN objdump -p bin/goradio.so | grep NEEDED | grep -qi ssl \
+	&& (echo "TLS build depends on a system libssl:" >&2 \
+		&& objdump -p bin/goradio.so | grep NEEDED >&2 && exit 1) \
+	|| echo "runtime deps: $(objdump -p bin/goradio.so | grep NEEDED | tr -s ' ' | tr '\n' ' ')"
+
 # Runs the host-side suite compiled 32-bit -- the way the plugin actually
 # ships. Not part of the export path, so build it explicitly:
 #   docker build --target test .

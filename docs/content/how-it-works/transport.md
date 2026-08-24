@@ -165,9 +165,10 @@ the audio server disagree about the API, which is worth reporting.
 
 Plain HTTP is the default, on the assumption the audio server is on a
 trusted network — often the same host. For an audio server behind a
-TLS-terminating proxy, build with TLS support and use an `https://` URL;
-certificates and hostnames are both verified, with SNI. See
-[Building](../building/index.md#tls).
+TLS-terminating proxy, use a **`-tls`**
+[download](../getting-started/installation.md#which-download) (or build
+with TLS support) and an `https://` URL; certificates and hostnames are
+both verified, with SNI. See [Building](../building/index.md#tls).
 
 A non-TLS build given an `https://` URL refuses it and says so, rather
 than quietly falling back to plaintext with your token in it.

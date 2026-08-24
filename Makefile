@@ -31,9 +31,26 @@ LDFLAGS  := -m$(BITS) -shared -static-libgcc -static-libstdc++ \
             -Wl,--version-script=sdk/goradio.ver
 LDLIBS   := -lpthread
 
+# A TLS build links OpenSSL statically by default. The alternative is a
+# plugin that needs a matching libssl on the target box, and SA-MP servers
+# are frequently old machines with an OpenSSL that is older still -- a
+# release binary has to carry its own. Set OPENSSL_STATIC=0 to link
+# against the system OpenSSL instead.
+OPENSSL_STATIC ?= 1
+UNAME_S := $(shell uname -s)
+
 ifeq ($(TLS),1)
 	CXXFLAGS += -DGORADIO_TLS
-	LDLIBS   += -lssl -lcrypto
+	ifeq ($(OPENSSL_STATIC),1)
+		ifeq ($(UNAME_S),Darwin)
+			# Apple's linker has no -Bstatic/-Bdynamic pair.
+			LDLIBS += -lssl -lcrypto
+		else
+			LDLIBS += -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic -ldl
+		endif
+	else
+		LDLIBS += -lssl -lcrypto
+	endif
 endif
 
 .PHONY: all clean test dirs docker check-windows check-names
@@ -46,6 +63,8 @@ dirs:
 $(TARGET): $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 	@echo "built $@ ($(BITS)-bit, TLS=$(TLS), version $(VERSION))"
+	@nm -D --defined-only $@ | wc -l | xargs -I{} sh -c 'test {} -eq 6 || \
+		{ echo "expected 6 exported symbols, got {}:" >&2; nm -D --defined-only $@ >&2; exit 1; }'
 
 $(BUILDDIR)/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
