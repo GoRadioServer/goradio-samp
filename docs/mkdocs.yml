@@ -1,0 +1,97 @@
+site_name: goradio-samp
+site_description: A SA-MP server plugin for creating and driving GoRadio stations from PAWN.
+site_url: https://tmfksoft.github.io/goradio-samp/
+repo_url: https://github.com/tmfksoft/goradio-samp
+repo_name: tmfksoft/goradio-samp
+edit_uri: edit/main/docs/content/
+
+docs_dir: content
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - toc:
+      permalink: true
+
+# With --strict these become build failures, which is the only way a
+# broken cross-reference gets noticed. anchors in particular is not
+# checked by default.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+  - How It Works:
+      - Overview: how-it-works/index.md
+      - Architecture & Threading: how-it-works/architecture.md
+      - Station Lifecycle: how-it-works/station-lifecycle.md
+      - Transport (Connect over HTTP): how-it-works/transport.md
+  - PAWN API:
+      - Overview: pawn-api/index.md
+      - Stations: pawn-api/stations.md
+      - Playback & Queue: pawn-api/playback.md
+      - Station State: pawn-api/state.md
+      - Callbacks: pawn-api/callbacks.md
+      - Errors: pawn-api/errors.md
+  - Guides:
+      - Keeping a Playlist Running: guides/playlist-rotation.md
+      - Running Multiple Stations: guides/multiple-stations.md
+      - Playing the Stream In-Game: guides/in-game-playback.md
+      - Troubleshooting: guides/troubleshooting.md
+  - Building:
+      - Building from Source: building/index.md
+      - Running the Tests: building/testing.md

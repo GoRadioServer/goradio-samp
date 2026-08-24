@@ -1,0 +1,18 @@
+/* Export only the six entry points the server resolves.
+ *
+ * Without this, -static-libstdc++ leaves thousands of C++ runtime symbols
+ * visible in the .so. SA-MP loads several plugins into one process, each
+ * potentially carrying its own copy of a different libstdc++ version, and
+ * the dynamic linker resolves the first definition it finds -- so those
+ * stray exports are a genuine way for one plugin to break another. */
+{
+	global:
+		Supports;
+		Load;
+		Unload;
+		AmxLoad;
+		AmxUnload;
+		ProcessTick;
+	local:
+		*;
+};

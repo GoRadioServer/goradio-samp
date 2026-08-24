@@ -1,0 +1,142 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.bits }}-bit)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bits: [32, 64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the 32-bit toolchain
+        if: matrix.bits == 32
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib
+
+      - name: Build
+        run: make BITS=${{ matrix.bits }}
+
+      # The suite runs against test/fake_audioserver.py, so it exercises
+      # the real HTTP client and Connect framing without needing an audio
+      # server. Running it at both widths matters: 32-bit is what ships.
+      - name: Test
+        run: sh test/run_tests.sh
+        env:
+          BITS: ${{ matrix.bits }}
+
+      - name: Check the exported symbols
+        run: |
+          exports=$(nm -D --defined-only bin/goradio.so | awk '{print $3}' | sort | tr '\n' ' ')
+          echo "exports: $exports"
+          # -static-libstdc++ leaves thousands of runtime symbols visible
+          # without the version script, and SA-MP loads several plugins
+          # into one process -- so this staying at six is load-bearing.
+          test "$exports" = "AmxLoad AmxUnload Load ProcessTick Supports Unload "
+
+  sanitizers:
+    name: Sanitizers
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [thread, "address,undefined"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the suite with -fsanitize=${{ matrix.sanitizer }}
+        run: |
+          g++ -std=c++11 -g -fsanitize=${{ matrix.sanitizer }} -Isdk -Isrc \
+            test/run_tests.cpp src/json.cpp src/http.cpp src/log.cpp \
+            src/connect_client.cpp src/station.cpp src/manager.cpp \
+            -o /tmp/run_tests -lpthread
+
+      - name: Run against the fake audio server
+        run: |
+          python3 test/fake_audioserver.py > /tmp/url.txt 2> /tmp/server.log &
+          for i in $(seq 50); do [ -s /tmp/url.txt ] && break; sleep 0.1; done
+          /tmp/run_tests "$(cat /tmp/url.txt)"
+
+  windows:
+    name: Windows (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: Win32
+          - arch: x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -A ${{ matrix.arch }} -DGORADIO_32BIT=OFF
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Check the DLL exports
+        shell: pwsh
+        run: |
+          $dll = "build/Release/goradio.dll"
+          if (-not (Test-Path $dll)) { throw "goradio.dll was not produced" }
+          # The server resolves these by undecorated name; goradio.def is
+          # what strips the __stdcall decoration.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $dumpbin = & $vswhere -latest -products * -find '**\dumpbin.exe' | Select-Object -First 1
+          $out = & $dumpbin /exports $dll
+          foreach ($fn in @("Supports","Load","Unload","AmxLoad","AmxUnload","ProcessTick")) {
+            if ($out -notmatch "\b$fn\b") { throw "missing export: $fn" }
+          }
+          Write-Host "all six entry points exported"
+
+  pawn:
+    name: PAWN include compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The natives in goradio.inc are cross-checked against natives.cpp by
+      # hand, but only a compiler catches a malformed declaration or a
+      # default argument the Pawn parser won't accept.
+      - name: Fetch the Pawn compiler and the SA-MP standard library
+        run: |
+          mkdir -p /tmp/pawn
+          curl -fsSL -o /tmp/pawn/compiler.zip \
+            https://github.com/pawn-lang/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.zip
+          unzip -q /tmp/pawn/compiler.zip -d /tmp/pawn
+          git clone --depth 1 https://github.com/pawn-lang/samp-stdlib /tmp/pawn/stdlib
+
+      - name: Compile the example filterscript
+        run: |
+          pawncc=$(find /tmp/pawn -name pawncc -type f | head -1)
+          chmod +x "$pawncc"
+          # -Z+ is compatibility mode, which is what Pawno uses; the SA-MP
+          # standard library does not compile cleanly without it.
+          "$pawncc" examples/goradio_example.pwn \
+            -i"$(dirname "$(find /tmp/pawn/stdlib -name a_samp.inc | head -1)")" \
+            -iinclude \
+            -o/tmp/goradio_example.amx \
+            -Z+ -d3
+          test -f /tmp/goradio_example.amx
+
+  docs:
+    name: Docs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install -r docs/requirements.txt
+      # --strict turns broken internal links and missing nav files into
+      # build failures, which is the only way they get noticed.
+      - run: mkdocs build --strict
+        working-directory: docs

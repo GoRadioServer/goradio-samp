@@ -1,0 +1,173 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to package (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+    steps:
+      - id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "value=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+  linux:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # samp03svr is 32-bit; open.mp is 64-bit. Both are shipped.
+          - bits: 32
+            platform: linux-x86
+          - bits: 64
+            platform: linux-x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the 32-bit toolchain
+        if: matrix.bits == 32
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib
+
+      - name: Build
+        run: make BITS=${{ matrix.bits }} VERSION=${{ needs.version.outputs.value }}
+
+      - name: Test
+        run: sh test/run_tests.sh
+        env:
+          BITS: ${{ matrix.bits }}
+
+      - name: Verify the architecture
+        run: |
+          readelf -h bin/goradio.so | grep -q "ELF${{ matrix.bits }}" \
+            || { echo "wrong architecture for ${{ matrix.platform }}"; exit 1; }
+
+      - name: Package
+        run: |
+          scripts/package.sh "${{ needs.version.outputs.value }}" \
+            "${{ matrix.platform }}" bin/goradio.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - arch: Win32
+            platform: windows-x86
+          - arch: x64
+            platform: windows-x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -B build -A ${{ matrix.arch }}
+          -DGORADIO_32BIT=OFF
+          -DGORADIO_VERSION=${{ needs.version.outputs.value }}
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-dll
+          path: build/Release/goradio.dll
+          if-no-files-found: error
+
+  package-windows:
+    # Packaged on Linux so there is one packaging script rather than a
+    # PowerShell copy of it that drifts.
+    needs: [version, windows]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [windows-x86, windows-x86_64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-dll
+          path: winbin
+
+      - name: Package
+        run: |
+          sudo apt-get update && sudo apt-get install -y zip
+          scripts/package.sh "${{ needs.version.outputs.value }}" \
+            "${{ matrix.platform }}" winbin/goradio.dll
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    needs: [version, linux, package-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: "*-x86*"
+          merge-multiple: true
+
+      - name: List what is being released
+        run: ls -la artifacts
+
+      - name: Checksums
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.value }}
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/SHA256SUMS
+          generate_release_notes: true
+          body: |
+            ## Which download
+
+            | File | For |
+            |---|---|
+            | `goradio-${{ needs.version.outputs.value }}-linux-x86.tar.gz` | Linux `samp03svr` (32-bit) |
+            | `goradio-${{ needs.version.outputs.value }}-windows-x86.zip` | Windows `samp-server.exe` (32-bit) |
+            | `goradio-${{ needs.version.outputs.value }}-linux-x86_64.tar.gz` | Linux open.mp (64-bit) |
+            | `goradio-${{ needs.version.outputs.value }}-windows-x86_64.zip` | Windows open.mp (64-bit) |
+
+            SA-MP is a 32-bit process and will not load an x86_64 build.
+            If the server log says `Failed.` next to the plugin, that is
+            almost always why.
+
+            Each archive mirrors a SA-MP server directory — copy the
+            folders over your server root. `INSTALL.txt` inside has the
+            `server.cfg` settings.
+
+            Documentation: https://tmfksoft.github.io/goradio-samp/

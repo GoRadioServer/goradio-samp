@@ -1,0 +1,9 @@
+.git
+bin/
+build/
+docs/site/
+site/
+dist/
+*.o
+*.so
+*.dll

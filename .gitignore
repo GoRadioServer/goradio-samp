@@ -1,0 +1,9 @@
+build/
+bin/
+dist/
+docs/site/
+site/
+*.o
+*.so
+*.dll
+*.amx
