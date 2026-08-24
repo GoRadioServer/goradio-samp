@@ -194,4 +194,19 @@ plugin SDK, so there is nothing to fetch. Two deliberate choices there:
 
 `sdk/goradio.ver` restricts the `.so` to six exported symbols. Keep it:
 without it, `-static-libstdc++` leaves thousands of C++ runtime symbols
-visible, and SA-MP loads several plugins into one process.
+visible, and SA-MP loads several plugins into one process. A TLS build
+makes that worse -- static OpenSSL would publish thousands more -- so the
+Dockerfile asserts the count rather than trusting it.
+
+`sdk/goradio.def` does the Windows half: the entry points are `__stdcall`
+there, and the `.def` re-exports them undecorated, which is how the
+server resolves them. `scripts/check-dll-exports.ps1` verifies that in
+CI and before every release; a DLL exporting `_Supports@0` loads as a
+bare `Failed.` with nothing else said.
+
+That script carries one PowerShell trap worth not reintroducing:
+`dumpbin` returns an **array** of lines, and `-match`/`-notmatch` on a
+collection *filters* it instead of returning a boolean. So
+`$lines -notmatch "Supports"` is truthy whenever any single line lacks
+the word -- which is always -- and the check fails on a perfectly good
+DLL. Join the output into one string first.

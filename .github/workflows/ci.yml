@@ -102,18 +102,7 @@ jobs:
 
       - name: Check the DLL exports
         shell: pwsh
-        run: |
-          $dll = "build/Release/goradio.dll"
-          if (-not (Test-Path $dll)) { throw "goradio.dll was not produced" }
-          # The server resolves these by undecorated name; goradio.def is
-          # what strips the __stdcall decoration.
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $dumpbin = & $vswhere -latest -products * -find '**\dumpbin.exe' | Select-Object -First 1
-          $out = & $dumpbin /exports $dll
-          foreach ($fn in @("Supports","Load","Unload","AmxLoad","AmxUnload","ProcessTick")) {
-            if ($out -notmatch "\b$fn\b") { throw "missing export: $fn" }
-          }
-          Write-Host "all six entry points exported"
+        run: pwsh scripts/check-dll-exports.ps1 build/Release/goradio.dll
 
   windows-tls:
     name: Windows TLS (${{ matrix.arch }})

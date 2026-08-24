@@ -129,6 +129,12 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
+      # A DLL exporting decorated names loads as a bare "Failed." with no
+      # explanation, so it is checked before it can reach a release.
+      - name: Check the DLL exports
+        shell: pwsh
+        run: pwsh scripts/check-dll-exports.ps1 build/Release/goradio.dll
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-dll
