@@ -211,8 +211,23 @@ collection *filters* it instead of returning a boolean. So
 the word -- which is always -- and the check fails on a perfectly good
 DLL. Join the output into one string first.
 
-`make check-exports` self-tests that script against captured `dumpbin`
-output, and runs in CI on Linux. There is no Windows here, but there is
+**Quote every `-DKEY=VALUE` argument** in the Windows CMake steps.
+PowerShell's argument-mode parsing breaks them three ways, and all three
+are silent:
+
+```powershell
+& cmake -DGORADIO_VERSION=v1.0.0    # splits: "-DGORADIO_VERSION=v1", ".0.0"
+& cmake -DFOO=$env:VCPKG_ROOT/x     # literal "$env:VCPKG_ROOT", unexpanded
+& cmake -DFOO=$version              # literal "$version", unexpanded
+& cmake "-DFOO=$version"            # correct
+```
+
+`${env:VAR}` is worse than either -- it spliced pwsh's own
+`-encodedCommand` line into the arguments. Build the value into a
+variable, then pass it as one double-quoted argument.
+
+`make check-exports` self-tests the export script against captured
+`dumpbin` output, and runs in CI on Linux. There is no Windows here, but there is
 PowerShell: `mcr.microsoft.com/powershell` runs it, and the make target
 falls back to that image when the host has no `pwsh`. Anything reasoned
 about PowerShell semantics can be *checked* that way instead -- which is

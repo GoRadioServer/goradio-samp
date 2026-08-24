@@ -107,8 +107,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PowerShell argument-mode parsing bites -D arguments three ways:
+      # an unquoted value splits at a dot (v1.0.0 becomes two arguments),
+      # $var is not expanded, and neither is $env:VAR. Quote every one.
       - name: Configure
-        run: cmake -B build -A ${{ matrix.arch }} -DGORADIO_32BIT=OFF
+        shell: pwsh
+        run: cmake -B build -A ${{ matrix.arch }} "-DGORADIO_32BIT=OFF"
 
       - name: Build
         run: cmake --build build --config Release
@@ -139,12 +143,21 @@ jobs:
         run: vcpkg install openssl:${{ matrix.triplet }}
 
       - name: Configure
-        run: >
-          cmake -B build -A ${{ matrix.arch }}
-          -DGORADIO_32BIT=OFF
-          -DGORADIO_TLS=ON
-          -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
-          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+        shell: pwsh
+        run: |
+          # $env:VAR is NOT expanded when it appears mid-argument, after
+          # something like -DFOO=. PowerShell passes the literal string
+          # through and CMake reports a toolchain file it cannot find.
+          # Build the path first, then pass it as a quoted argument.
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          if (-not (Test-Path $toolchain)) {
+            throw "vcpkg toolchain not found at $toolchain"
+          }
+          cmake -B build -A ${{ matrix.arch }} `
+            "-DGORADIO_32BIT=OFF" `
+            "-DGORADIO_TLS=ON" `
+            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" `
+            "-DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}"
 
       - name: Build
         run: cmake --build build --config Release

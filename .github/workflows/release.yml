@@ -109,22 +109,36 @@ jobs:
         if: matrix.tls == 'ON'
         run: vcpkg install openssl:${{ matrix.triplet }}
 
+      # PowerShell argument-mode parsing bites -D arguments three ways: an
+      # unquoted value splits at a dot (-DGORADIO_VERSION=v1.0.0 arrives as
+      # two arguments, "…=v1" and ".0.0"), $var is not expanded, and
+      # neither is $env:VAR. Quote every one.
       - name: Configure (no TLS)
         if: matrix.tls == 'OFF'
-        run: >
-          cmake -B build -A ${{ matrix.arch }}
-          -DGORADIO_32BIT=OFF
-          -DGORADIO_VERSION=${{ needs.version.outputs.value }}
+        shell: pwsh
+        run: |
+          cmake -B build -A ${{ matrix.arch }} `
+            "-DGORADIO_32BIT=OFF" `
+            "-DGORADIO_VERSION=${{ needs.version.outputs.value }}"
 
       - name: Configure (TLS)
         if: matrix.tls == 'ON'
-        run: >
-          cmake -B build -A ${{ matrix.arch }}
-          -DGORADIO_32BIT=OFF
-          -DGORADIO_TLS=ON
-          -DGORADIO_VERSION=${{ needs.version.outputs.value }}
-          -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
-          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+        shell: pwsh
+        run: |
+          # $env:VAR is NOT expanded when it appears mid-argument, after
+          # something like -DFOO=. PowerShell passes the literal string
+          # through and CMake reports a toolchain file it cannot find.
+          # Build the path first, then pass it as a quoted argument.
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          if (-not (Test-Path $toolchain)) {
+            throw "vcpkg toolchain not found at $toolchain"
+          }
+          cmake -B build -A ${{ matrix.arch }} `
+            "-DGORADIO_32BIT=OFF" `
+            "-DGORADIO_TLS=ON" `
+            "-DGORADIO_VERSION=${{ needs.version.outputs.value }}" `
+            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" `
+            "-DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}"
 
       - name: Build
         run: cmake --build build --config Release
