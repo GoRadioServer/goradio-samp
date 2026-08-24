@@ -3,8 +3,8 @@
 ## Why not gRPC
 
 The audio server's API is defined as a gRPC service
-(`audioserver.v1.AudioServerService`), and the Lua station controller dials
-it with a real gRPC client. This plugin does not, for a reason that isn't
+(`audioserver.v1.AudioServerService`), and a generated gRPC client is the
+natural way to call it. This plugin doesn't, for a reason that isn't
 about preference:
 
 SA-MP is a **32-bit** process loading a C-ABI shared library. Getting a
@@ -40,7 +40,7 @@ Content-Type: application/json
 Connect-Protocol-Version: 1
 Authorization: Bearer <jwt>
 
-{"slug":"mcnr-main","source":{"type":"TRACK_SOURCE_TYPE_LOCAL_FILE",
+{"slug":"myfm","source":{"type":"TRACK_SOURCE_TYPE_LOCAL_FILE",
  "location":"music/night-drive.mp3"},"mode":"QUEUE_MODE_APPEND"}
 ```
 
@@ -114,7 +114,7 @@ happen:
 A sample event, one per envelope:
 
 ```json
-{"slug":"mcnr-main","type":"EVENT_TYPE_TRACK_STARTED","timestampUnixMs":"1787586747047",
+{"slug":"myfm","type":"EVENT_TYPE_TRACK_STARTED","timestampUnixMs":"1787586747047",
  "trackStarted":{"queueId":"15c5...","source":{"location":"music/night-drive.mp3",
  "displayTitle":"Night Drive"},"durationSeconds":"212"}}
 ```

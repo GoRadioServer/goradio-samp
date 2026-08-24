@@ -96,7 +96,7 @@ Every request and response body goes to the server log, which usually
 identifies the problem immediately:
 
 ```
-[goradio] debug: -> QueueTrack {"slug":"mcnr-main",...}
+[goradio] debug: -> QueueTrack {"slug":"myfm",...}
 [goradio] debug: <- QueueTrack HTTP 404 {"code":"not_found","message":"no such station"}
 ```
 

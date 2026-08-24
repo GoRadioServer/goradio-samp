@@ -14,9 +14,9 @@ enum { STATION_MAIN, STATION_CHILL, STATION_TALK };
 
 public OnGameModeInit()
 {
-    gStations[STATION_MAIN]  = GoRadio_CreateStation("mcnr-main",  "MCNR Main",  "", 3);
-    gStations[STATION_CHILL] = GoRadio_CreateStation("mcnr-chill", "MCNR Chill", "", 3);
-    gStations[STATION_TALK]  = GoRadio_CreateStation("mcnr-talk",  "MCNR Talk",  "", 2);
+    gStations[STATION_MAIN]  = GoRadio_CreateStation("myfm",  "My FM",  "", 3);
+    gStations[STATION_CHILL] = GoRadio_CreateStation("chillfm", "Chill FM", "", 3);
+    gStations[STATION_TALK]  = GoRadio_CreateStation("talkfm",  "Talk FM",  "", 2);
     return 1;
 }
 ```
@@ -28,7 +28,7 @@ doesn't affect the others.
 The token must authorize **every** slug:
 
 ```sh
-radio tokengen --slugs mcnr-main,mcnr-chill,mcnr-talk --write
+radio tokengen --slugs myfm,chillfm,talkfm --write
 ```
 
 ## Per-station state
@@ -43,7 +43,7 @@ static gSinceIdent[3];
 QueueNext(index)
 {
     new i = gCursor[index]++ % sizeof(gPlaylists[index]);
-    GoRadio_QueueTrack(gStations[index], gPlaylists[index][i], gTitles[index][i], "MCNR");
+    GoRadio_QueueTrack(gStations[index], gPlaylists[index][i], gTitles[index][i], "My FM");
 }
 ```
 
@@ -150,7 +150,7 @@ If several servers share one audio server, metadata is how a dashboard
 tells them apart:
 
 ```pawn
-GoRadio_SetStationMetadata(station, "group", "mcnr");
+GoRadio_SetStationMetadata(station, "group", "myserver");
 GoRadio_SetStationMetadata(station, "server", "eu-1");
 GoRadio_SetStationMetadata(station, "genre", "mixed");
 ```

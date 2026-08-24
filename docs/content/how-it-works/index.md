@@ -59,7 +59,7 @@ sequenceDiagram
     participant P as goradio plugin
     participant A as radio serve
 
-    G->>P: GoRadio_CreateStation("mcnr-main", ...)
+    G->>P: GoRadio_CreateStation("myfm", ...)
     P-->>G: station id (immediately)
 
     Note over P,A: background: register, then subscribe

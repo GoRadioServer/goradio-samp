@@ -24,14 +24,14 @@ public OnGameModeInit()
 {
     // The 3 is a low-queue threshold: tell me when fewer than 3 items are
     // waiting, so I can top it up.
-    gStation = GoRadio_CreateStation("mcnr-main", "MCNR Main", "The main channel", 3);
+    gStation = GoRadio_CreateStation("myfm", "My FM", "The main channel", 3);
     return 1;
 }
 
 QueueNext()
 {
     new i = gCursor++ % sizeof(gPlaylist);
-    GoRadio_QueueTrack(gStation, gPlaylist[i], gPlaylist[i], "MCNR Radio");
+    GoRadio_QueueTrack(gStation, gPlaylist[i], gPlaylist[i], "My FM");
 }
 
 public OnGoRadioStationRegistered(stationid, const streamUrl[], bool:reRegistered,
@@ -69,7 +69,7 @@ what each part is doing and why.
 ### 1. Create the station
 
 ```pawn
-gStation = GoRadio_CreateStation("mcnr-main", "MCNR Main", "The main channel", 3);
+gStation = GoRadio_CreateStation("myfm", "My FM", "The main channel", 3);
 ```
 
 Returns a station id immediately — but the station is **not registered
@@ -77,7 +77,7 @@ yet**. Registration happens on a background thread and retries with
 backoff until the audio server accepts it, so this works fine even if the
 audio server isn't up yet.
 
-The slug (`mcnr-main`) is the station's identity on the audio server and
+The slug (`myfm`) is the station's identity on the audio server and
 the last part of its stream URL. The `3` enables
 [`OnGoRadioQueueLow`](../pawn-api/callbacks.md#ongoradioqueuelow).
 
@@ -117,7 +117,7 @@ station's first track belongs.
 ### 3. Queue tracks
 
 ```pawn
-GoRadio_QueueTrack(gStation, "music/night-drive.mp3", "Night Drive", "MCNR Radio");
+GoRadio_QueueTrack(gStation, "music/night-drive.mp3", "Night Drive", "My FM");
 ```
 
 The location is either a path relative to the audio server's configured

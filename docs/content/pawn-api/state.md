@@ -189,7 +189,7 @@ native GoRadio_GetListedListenerCount(index);
 Unlike everything else on this page, these are not scoped to a station
 this server created. `GoRadio_RequestStationList` asks the audio server for
 **every station the token authorizes** — including ones registered by
-other game servers, by Lua controllers, or by hand.
+other game servers, or by anything else driving the same audio server.
 
 It's a request, so it answers in
 [`OnGoRadioStationList`](callbacks.md#ongoradiostationlist); the getters

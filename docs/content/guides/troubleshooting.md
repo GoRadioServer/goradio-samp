@@ -9,9 +9,9 @@ Loading plugin: goradio.so
 [goradio] using audio server http://127.0.0.1:9090 (2 workers, status poll every 5s)
 [goradio] connected to audio server v0.9.0
  Loaded.
-[goradio] station 0 (mcnr-main) created, registering...
-[goradio] station 0 (mcnr-main) registered, stream at http://127.0.0.1:9090/stream/mcnr-main
-[goradio] station 0 (mcnr-main) subscribed to events
+[goradio] station 0 (myfm) created, registering...
+[goradio] station 0 (myfm) registered, stream at http://127.0.0.1:9090/stream/myfm
+[goradio] station 0 (myfm) subscribed to events
 ```
 
 If a line is missing, the problem is at that step.
@@ -85,7 +85,7 @@ when the server appears. Nothing to do.
 slug, or is read-only. Reissue it:
 
 ```sh
-radio tokengen --slugs mcnr-main,mcnr-chill --write
+radio tokengen --slugs myfm,chillfm --write
 ```
 
 This is a **permanent** error: the station stops and will not retry.
@@ -104,7 +104,7 @@ before the station finished registering. Move it into
 // Wrong -- the station isn't registered yet
 public OnGameModeInit()
 {
-    new s = GoRadio_CreateStation("mcnr-main");
+    new s = GoRadio_CreateStation("myfm");
     GoRadio_QueueTrack(s, "music/intro.mp3");   // not_found
     return 1;
 }
@@ -159,7 +159,7 @@ both.
 ## Repeated reconnects
 
 ```
-[goradio] WARN: station 0 (mcnr-main) event stream ended (...), reconnecting
+[goradio] WARN: station 0 (myfm) event stream ended (...), reconnecting
 ```
 
 Occasionally is normal — a restart, a network blip. Constantly means
@@ -190,7 +190,7 @@ goradio_debug 1
 Logs every request and response body:
 
 ```
-[goradio] debug: -> QueueTrack {"slug":"mcnr-main",...}
+[goradio] debug: -> QueueTrack {"slug":"myfm",...}
 [goradio] debug: <- QueueTrack HTTP 404 {"code":"not_found","message":"no such station"}
 ```
 

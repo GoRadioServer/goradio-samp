@@ -21,9 +21,10 @@ int NextBackoff(int current) {
 }
 
 const char *SourceTypeFor(const std::string &location) {
-	// Same inference the Lua controller does: anything that looks like a
-	// URL is an HTTP source, everything else is a path under the audio
-	// server's audio root.
+	// The caller never declares which kind of source this is, so infer it
+	// the way the audio server's own clients do: anything that looks like
+	// a URL is an HTTP source, everything else is a path under the audio
+	// server's configured audio root.
 	if (location.compare(0, 7, "http://") == 0 || location.compare(0, 8, "https://") == 0) {
 		return "TRACK_SOURCE_TYPE_HTTP_URL";
 	}

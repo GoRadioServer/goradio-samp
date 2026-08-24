@@ -4,17 +4,17 @@ A SA-MP server plugin that creates and drives [GoRadio](https://github.com/tmfks
 stations from PAWN.
 
 Your gamemode registers stations, queues tracks, skips, pauses and seeks,
-and gets told when tracks start and end — the same capabilities the Lua
-station controller has, exposed as natives and callbacks.
+and gets told when tracks start and end — the audio server's full control
+surface, exposed as natives and callbacks.
 
 ```pawn
-new station = GoRadio_CreateStation("mcnr-main", "MCNR Main", "The main channel", 3);
+new station = GoRadio_CreateStation("myfm", "My FM", "The main channel", 3);
 
 public OnGoRadioStationRegistered(stationid, const streamUrl[], bool:reRegistered,
     bool:afterReconnect)
 {
     if (GoRadio_GetQueueLength(stationid) == 0)
-        GoRadio_QueueTrack(stationid, "music/night-drive.mp3", "Night Drive", "MCNR Radio");
+        GoRadio_QueueTrack(stationid, "music/night-drive.mp3", "Night Drive", "My FM");
     return 1;
 }
 
@@ -73,15 +73,15 @@ flowchart LR
     P[Players] -->|listen| A
     S[SA-MP server<br/>gamemode + goradio] -->|"Connect / HTTP+JSON"| A[radio serve<br/>audio server]
     A -->|"event stream"| S
-    L[radio station<br/>Lua controller] -.->|"the same protocol"| A
 ```
 
 The audio server (`radio serve`) does the actual audio work: fetching,
 decoding, mixing and streaming. This plugin is a **controller** — it tells
-the audio server what to play and reacts to what happens. It is the same
-role the Lua station controller fills, speaking the same protocol, so a
-station driven from PAWN is indistinguishable to a listener from one
-driven by a Lua script.
+the audio server what to play and reacts to what happens.
+
+That split is why a station keeps playing when your gamemode restarts,
+and why listeners connect to the audio server directly rather than
+through your SA-MP server.
 
 !!! info "You do not need this plugin to play radio in SA-MP"
     `PlayAudioStreamForPlayer` can point at any stream URL, including one

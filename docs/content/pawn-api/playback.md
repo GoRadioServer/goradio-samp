@@ -43,10 +43,10 @@ validates the cover art URL; it just passes it along.
 
 ```pawn
 // Ordinary playlist item
-GoRadio_QueueTrack(station, "music/night-drive.mp3", "Night Drive", "MCNR Radio");
+GoRadio_QueueTrack(station, "music/night-drive.mp3", "Night Drive", "My FM");
 
 // A player request, jumping the queue
-GoRadio_QueueTrack(station, "music/requested.mp3", "Requested Track", "MCNR Radio",
+GoRadio_QueueTrack(station, "music/requested.mp3", "Requested Track", "My FM",
     "", RADIO_QUEUE_PLAY_NEXT);
 
 // A breaking announcement, cutting in right now
@@ -110,7 +110,7 @@ The usual "clean slate" call:
 
 ```pawn
 GoRadio_ClearQueue(station, true);
-GoRadio_QueueTrack(station, "music/fresh-start.mp3", "Fresh Start", "MCNR Radio");
+GoRadio_QueueTrack(station, "music/fresh-start.mp3", "Fresh Start", "My FM");
 ```
 
 `success` is always `true` when the call lands; the result value is how

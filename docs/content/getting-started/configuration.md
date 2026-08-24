@@ -103,7 +103,7 @@ station won't register or an RPC does something unexpected; noisy enough
 that you don't want it on permanently.
 
 ```
-[goradio] debug: -> QueueTrack {"slug":"mcnr-main","source":{...},"mode":"QUEUE_MODE_APPEND"}
+[goradio] debug: -> QueueTrack {"slug":"myfm","source":{...},"mode":"QUEUE_MODE_APPEND"}
 [goradio] debug: <- QueueTrack HTTP 200 {"queueId":"7bd96ff0-...","status":"queued"}
 ```
 

@@ -8,17 +8,17 @@ installation, how it works, the complete PAWN API, guides and
 troubleshooting.
 
 Your gamemode registers stations, queues tracks, skips, pauses and seeks,
-and gets told when tracks start and end — the same capabilities the Lua
-station controller has, exposed as natives and callbacks.
+and gets told when tracks start and end — the audio server's full control
+surface, exposed as natives and callbacks.
 
 ```pawn
-new station = GoRadio_CreateStation("mcnr-main", "MCNR Main", "The main channel", 3);
+new station = GoRadio_CreateStation("myfm", "My FM", "The main channel", 3);
 
 public OnGoRadioStationRegistered(stationid, const streamUrl[], bool:reRegistered,
 	bool:afterReconnect)
 {
 	if (GoRadio_GetQueueLength(stationid) == 0)
-		GoRadio_QueueTrack(stationid, "music/night-drive.mp3", "Night Drive", "MCNR Radio");
+		GoRadio_QueueTrack(stationid, "music/night-drive.mp3", "Night Drive", "My FM");
 	return 1;
 }
 ```
@@ -337,8 +337,8 @@ mkdocs build --strict        # what CI runs -- fails on a broken link
 
 ## Related
 
-- [gta-radio-golang](../gta-radio-golang) — the audio server and its Lua
-  station controller, whose `radio.*` API this plugin mirrors.
+- [gta-radio-golang](../gta-radio-golang) — the audio server this plugin
+  controls.
 - `docs/content/developer-api/http-json-api.md` in that repo — the
   transport this plugin implements.
 - `docs/content/developer-api/protocol-reference.md` — the per-RPC spec.

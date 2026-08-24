@@ -23,7 +23,7 @@ static gCursor = 0;
 QueueNext(stationid)
 {
     new i = gCursor++ % sizeof(gPlaylist);
-    GoRadio_QueueTrack(stationid, gPlaylist[i], gTitles[i], "MCNR Radio");
+    GoRadio_QueueTrack(stationid, gPlaylist[i], gTitles[i], "My FM");
 }
 
 public OnGoRadioStationRegistered(stationid, const streamUrl[], bool:reRegistered,
@@ -44,7 +44,7 @@ public OnGoRadioQueueLow(stationid, queueLength, threshold)
 Create the station with a threshold so the second callback fires:
 
 ```pawn
-GoRadio_CreateStation("mcnr-main", "MCNR Main", "", 3);
+GoRadio_CreateStation("myfm", "My FM", "", 3);
 ```
 
 Two things about this that are easy to get wrong:
@@ -104,12 +104,12 @@ QueueNext(stationid)
     if (++gSinceIdent >= 4)
     {
         gSinceIdent = 0;
-        GoRadio_QueueTrack(stationid, "idents/mcnr-ident.mp3", "MCNR Radio", "");
+        GoRadio_QueueTrack(stationid, "idents/myfm-ident.mp3", "My FM", "");
         return;
     }
 
     new i = NextIndex();
-    GoRadio_QueueTrack(stationid, gPlaylist[i], gTitles[i], "MCNR Radio");
+    GoRadio_QueueTrack(stationid, gPlaylist[i], gTitles[i], "My FM");
 }
 ```
 

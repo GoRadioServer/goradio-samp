@@ -10,7 +10,7 @@ drive.
 Generate a token with write access to the slugs you plan to register:
 
 ```sh
-radio tokengen --slugs mcnr-main,mcnr-chill --write
+radio tokengen --slugs myfm,chillfm --write
 ```
 
 A read-only token can register nothing and queue nothing; every write RPC

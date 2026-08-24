@@ -28,7 +28,7 @@ while the audio server is down is fine — it comes up on its own. Wait for
 before queueing anything.
 
 ```pawn
-new station = GoRadio_CreateStation("mcnr-main", "MCNR Main", "The main channel", 3,
+new station = GoRadio_CreateStation("myfm", "My FM", "The main channel", 3,
     "https://cdn.example.com/art/main.png");
 
 if (station == INVALID_RADIO_STATION)
@@ -99,7 +99,7 @@ every registration.
 
 ```pawn
 GoRadio_SetStationMetadata(station, "event", "christmas");
-GoRadio_UpdateStation(station, "MCNR Main — Festive", "Seasonal music", 3,
+GoRadio_UpdateStation(station, "My FM — Festive", "Seasonal music", 3,
     "https://cdn.example.com/art/festive.png");
 ```
 
@@ -206,7 +206,7 @@ server stores and returns these without interpreting them.
 Passing an empty value removes the key.
 
 ```pawn
-GoRadio_SetStationMetadata(station, "group", "mcnr");
+GoRadio_SetStationMetadata(station, "group", "myserver");
 GoRadio_SetStationMetadata(station, "genre", "mixed");
 GoRadio_SetStationMetadata(station, "server", "eu-1");
 ```

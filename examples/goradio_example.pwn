@@ -13,8 +13,8 @@
 #include <a_samp>
 #include <goradio>
 
-#define STATION_MAIN_SLUG   "mcnr-main"
-#define STATION_CHILL_SLUG  "mcnr-chill"
+#define STATION_MAIN_SLUG   "myfm"
+#define STATION_CHILL_SLUG  "chillfm"
 
 /* How many items we try to keep queued ahead of the current track. */
 #define QUEUE_TARGET        3
@@ -52,15 +52,15 @@ public OnFilterScriptInit()
 
 	/* Metadata is freeform and opaque to the audio server; it is sent
 	 * with the registration, so set it before creating the station. */
-	gMainStation = GoRadio_CreateStation(STATION_MAIN_SLUG, "MCNR Main", "The main channel",
+	gMainStation = GoRadio_CreateStation(STATION_MAIN_SLUG, "My FM", "The main channel",
 		QUEUE_TARGET, "https://cdn.example.com/art/main.png");
 	if (gMainStation != INVALID_RADIO_STATION)
 	{
-		GoRadio_SetStationMetadata(gMainStation, "group", "mcnr");
+		GoRadio_SetStationMetadata(gMainStation, "group", "myserver");
 		GoRadio_SetStationMetadata(gMainStation, "genre", "mixed");
 	}
 
-	gChillStation = GoRadio_CreateStation(STATION_CHILL_SLUG, "MCNR Chill", "Slower stuff", 2);
+	gChillStation = GoRadio_CreateStation(STATION_CHILL_SLUG, "Chill FM", "Slower stuff", 2);
 
 	print("[example] stations created; waiting for registration");
 	return 1;
@@ -86,7 +86,7 @@ QueueNextTrack(stationid)
 	new index = gPlaylistCursor % sizeof(gPlaylist);
 	gPlaylistCursor++;
 
-	GoRadio_QueueTrack(stationid, gPlaylist[index], gPlaylistTitles[index], "MCNR Radio");
+	GoRadio_QueueTrack(stationid, gPlaylist[index], gPlaylistTitles[index], "My FM");
 }
 
 public OnGoRadioStationRegistered(stationid, const streamUrl[], bool:reRegistered,

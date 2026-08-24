@@ -133,7 +133,7 @@ and listeners stay connected.
 
 ```pawn
 GoRadio_SetStationMetadata(station, "event", "christmas");
-GoRadio_UpdateStation(station, "MCNR Main — Festive", "Seasonal music", 3,
+GoRadio_UpdateStation(station, "My FM — Festive", "Seasonal music", 3,
     "https://cdn.example.com/art/festive.png");
 ```
 
@@ -143,7 +143,7 @@ not a patch. That matters because most of them have defaults:
 ```pawn
 // Also clears the description, the low-queue threshold and the logo,
 // because those arguments defaulted to "" and 0.
-GoRadio_UpdateStation(station, "MCNR Main — Festive");
+GoRadio_UpdateStation(station, "My FM — Festive");
 ```
 
 Pass the values you want to keep, not just the ones you're changing.
