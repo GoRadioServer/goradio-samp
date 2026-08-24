@@ -332,8 +332,10 @@ binary really is the width it claims before packaging.
 
 ## Documentation
 
-The docs in `docs/` are MkDocs + Material, published to GitHub Pages on
-every push to `main`.
+The docs in `docs/` use the
+[GoRadio MkDocs theme](https://github.com/GoRadioServer/goradio-mkdocs-theme),
+published to GitHub Pages on every push to `main`. The theme is not on
+PyPI yet, so `docs/requirements.txt` installs it from git.
 
 ```sh
 pip install -r docs/requirements.txt

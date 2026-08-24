@@ -8,37 +8,42 @@ edit_uri: edit/main/docs/content/
 docs_dir: content
 
 theme:
-  name: material
-  palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to light mode
+  name: goradio
+
+  # No palette block here on purpose. The theme ships one locked dark
+  # scheme wired to GoRadio's brand through custom CSS variables rather
+  # than one of Material's named palettes, so overriding it would undo
+  # the reason for adopting the theme. Same for font, logo and favicon.
+  #
+  # features is restated in full rather than added to, because MkDocs
+  # *replaces* a theme's list instead of merging into it -- setting only
+  # content.action.edit here removes the navigation tabs. Keep this in
+  # sync with the theme's own mkdocs_theme.yml; content.action.edit is
+  # the single addition, pairing with edit_uri above.
   features:
     - navigation.tabs
     - navigation.sections
     - navigation.top
+    - navigation.footer
     - navigation.indexes
-    - content.code.copy
-    - content.action.edit
+    - toc.follow
     - search.suggest
     - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
 
 markdown_extensions:
   - attr_list
   - md_in_html
   - admonition
+  - footnotes
   - pymdownx.details
+  # The mermaid fence is this project's own addition to the theme's
+  # recommended set: several pages draw the threading model and the
+  # station lifecycle, and Material renders them natively once the fence
+  # is registered here.
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -50,6 +55,8 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg

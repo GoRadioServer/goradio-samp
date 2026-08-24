@@ -21,7 +21,7 @@ Everything is dependency-free and hand-written:
 | Orchestration | `src/manager.*`, `src/station.*` | Stations, worker threads, event streams, reconnect, the status cache |
 | Protocol | `src/connect_client.*` | Unary RPCs and the 5-byte Connect envelope framing |
 | Transport | `src/http.*`, `src/json.*` | HTTP/1.1 (chunked, keep-alive, optional TLS) and a protobuf-JSON-shaped parser |
-| Docs | `docs/` | MkDocs + Material, published to GitHub Pages |
+| Docs | `docs/` | MkDocs with the GoRadio theme, published to GitHub Pages |
 | CI/release | `.github/workflows/`, `scripts/package.sh`, `Dockerfile` | Build, test, package, publish |
 
 ## Threading — the thing to be careful about
@@ -101,8 +101,28 @@ one nobody will find.
 
 ## Documentation
 
-`docs/` is MkDocs + Material, `docs_dir: content`, deployed to GitHub
-Pages by `.github/workflows/docs.yml` on every push to `main`.
+`docs/` is MkDocs with the
+[GoRadio theme](https://github.com/GoRadioServer/goradio-mkdocs-theme),
+`docs_dir: content`, deployed to GitHub Pages by
+`.github/workflows/docs.yml` on every push to `main`.
+
+The theme is a skin over Material for MkDocs (`extends: material`), so
+every Material feature still works. Two things about it are easy to get
+wrong:
+
+- **Don't add a `theme.palette` block.** The theme ships one locked dark
+  scheme wired to the brand through custom CSS variables rather than a
+  named Material palette; overriding it undoes the point of using it.
+- **`theme.features` replaces the theme's list, it does not merge.**
+  Setting only `content.action.edit` silently drops the navigation tabs
+  (verified). Our `mkdocs.yml` restates the theme's full list plus that
+  one addition, so re-sync it if the theme's own list changes.
+
+It installs from git (`docs/requirements.txt`), tracking the theme's
+`main`, since it is not published to PyPI. A theme change therefore
+reaches this site on the next docs build -- but note `docs.yml` only
+triggers on `docs/**`, so pushing an unrelated commit or dispatching the
+workflow is what picks one up.
 
 ```sh
 pip install -r docs/requirements.txt
